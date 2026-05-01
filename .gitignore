@@ -3,3 +3,16 @@
 .idea
 
 docs/superpowers
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+
+# 环境变量不提交
+.env
+
+# 前端
+node_modules/
+frontend/dist/

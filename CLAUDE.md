@@ -69,6 +69,7 @@ scaffold → infra → auth → pharmacy → customer → consultation → billi
 - `.env` 不入库，`.env.example` 作为模板入库
 - MinIO 用 Docker（`docker compose up -d minio`），PG / Redis / MongoDB 用本地服务
 - 前端 `localhost:5173`，后端 `localhost:8000`
+- Conda 虚拟环境：`PHS`（所有 Python 依赖安装在该环境内）
 
 ---
 
