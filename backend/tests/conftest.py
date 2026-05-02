@@ -38,3 +38,21 @@ async def client(db: AsyncSession):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def test_employee_and_account(db: AsyncSession):
+    """创建测试员工 + 账号（密码: test123456）"""
+    import bcrypt
+
+    password_hash = bcrypt.hashpw("test123456".encode(), bcrypt.gensalt()).decode()
+    result = await db.execute(
+        text("INSERT INTO employee (name, role, phone) VALUES ('测试医生', '医生', '13800000001') RETURNING employee_id")
+    )
+    employee_id = result.scalar_one()
+    await db.execute(
+        text("INSERT INTO account (employee_id, username, password_hash, is_active) VALUES (:eid, 'testdoctor', :ph, TRUE)"),
+        {"eid": employee_id, "ph": password_hash},
+    )
+    await db.flush()
+    return employee_id

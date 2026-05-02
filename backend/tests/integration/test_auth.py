@@ -34,12 +34,17 @@ class TestLogin:
         assert resp.status_code == 401
         assert "detail" in resp.json()
 
-    async def test_login_disabled_account(self, client: AsyncClient, db, test_employee_and_account):
+    async def test_login_disabled_account(self, client: AsyncClient, db):
         """禁用账号 → 401"""
         password_hash = bcrypt.hashpw("test123456".encode(), bcrypt.gensalt()).decode()
+        # 创建独立的员工
+        result = await db.execute(
+            text("INSERT INTO employee (name, role, phone) VALUES ('禁用医生', '医生', '13800000003') RETURNING employee_id")
+        )
+        emp_id = result.scalar_one()
         await db.execute(
             text("INSERT INTO account (employee_id, username, password_hash, is_active) VALUES (:eid, 'disabled_user', :ph, FALSE)"),
-            {"eid": test_employee_and_account, "ph": password_hash},
+            {"eid": emp_id, "ph": password_hash},
         )
         await db.flush()
 

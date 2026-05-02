@@ -18,7 +18,7 @@ async def check_login_rate_limit(redis: Redis, ip: str):
     """检查登录限流：同一 IP 15 分钟内最多 5 次失败"""
     key = f"ratelimit:login:{ip}"
     attempts = await redis.get(key)
-    if attempts and int(attempts) > 5:
+    if attempts and int(attempts) >= 5:
         raise Unauthorized(detail="登录尝试过于频繁，请15分钟后重试")
 
 
@@ -59,6 +59,9 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
     # 签发 JWT
     token = create_access_token(data={"sub": str(row.account_id), "role": row.role})
 
+    # 登录成功，清除限流计数
+    await redis.delete(f"ratelimit:login:{ip}")
+
     # 更新最后登录时间
     await db.execute(
         text("UPDATE account SET last_login = :now WHERE account_id = :id"),
@@ -77,7 +80,10 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
 
 async def logout(redis: Redis, token: str):
     """将 JWT 加入黑名单（按 JTI），TTL 为 token 剩余有效时间"""
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        return  # token 已无效，无需加入黑名单
     exp = payload["exp"]
     now = datetime.now(timezone.utc).timestamp()
     ttl = max(0, int(exp - now))

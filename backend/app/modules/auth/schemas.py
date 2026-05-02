@@ -25,9 +25,7 @@ class LoginResponse(BaseModel):
 class AccountCreate(BaseModel):
     employee_id: int
     username: str = Field(min_length=3, max_length=50)
-    password: str = Field(min_length=6)
-
-    model_config = {"from_attributes": True}
+    password: str = Field(min_length=8)
 
 
 class AccountOut(BaseModel):
