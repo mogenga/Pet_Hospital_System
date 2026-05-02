@@ -16,3 +16,6 @@ dist/
 # 前端
 node_modules/
 frontend/dist/
+
+# 工作树隔离目录
+.worktrees/
