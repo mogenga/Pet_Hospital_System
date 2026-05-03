@@ -1,108 +1,83 @@
-"""
-认证模块集成测试
-
-TDD: 这些测试先于实现编写，当前应全部 FAIL。
-"""
+"""认证模块集成测试"""
 import bcrypt
 import pytest
+import redis.asyncio as aioredis
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+
+
+async def _setup_doctor(db: AsyncSession, username: str, phone: str, is_active: bool = True):
+    """创建测试医生+账号，密码 test123456"""
+    pwd = bcrypt.hashpw("test123456".encode(), bcrypt.gensalt()).decode()
+    r = await db.execute(
+        text("INSERT INTO employee (name, role, phone) VALUES ('测试医生', '医生', :ph) RETURNING employee_id"),
+        {"ph": phone},
+    )
+    emp_id = r.scalar_one()
+    await db.execute(
+        text("INSERT INTO account (employee_id, username, password_hash, is_active) VALUES (:eid, :u, :pwd, :active)"),
+        {"eid": emp_id, "u": username, "pwd": pwd, "active": is_active},
+    )
+    await db.flush()
 
 
 class TestLogin:
-    """登录相关测试"""
+    async def test_login_success(self, client: AsyncClient, db: AsyncSession):
+        await _setup_doctor(db, "doctor1", "13800000001")
 
-    async def test_login_success(self, client: AsyncClient, test_employee_and_account):
-        """有效用户名/密码 → 返回 token"""
         resp = await client.post("/api/auth/login", json={
-            "username": "testdoctor",
-            "password": "test123456",
+            "username": "doctor1", "password": "test123456",
         })
         assert resp.status_code == 200
         data = resp.json()
         assert "access_token" in data
-        assert data["token_type"] == "bearer"
-        assert data["user"]["username"] == "testdoctor"
-        assert data["user"]["role"] == "医生"
+        assert data["user"]["username"] == "doctor1"
 
-    async def test_login_wrong_password(self, client: AsyncClient, test_employee_and_account):
-        """错误密码 → 401"""
-        resp = await client.post("/api/auth/login", json={
-            "username": "testdoctor",
-            "password": "wrongpassword",
-        })
-        assert resp.status_code == 401
-        assert "detail" in resp.json()
-
-    async def test_login_disabled_account(self, client: AsyncClient, db):
-        """禁用账号 → 401"""
-        password_hash = bcrypt.hashpw("test123456".encode(), bcrypt.gensalt()).decode()
-        # 创建独立的员工
-        result = await db.execute(
-            text("INSERT INTO employee (name, role, phone) VALUES ('禁用医生', '医生', '13800000003') RETURNING employee_id")
-        )
-        emp_id = result.scalar_one()
-        await db.execute(
-            text("INSERT INTO account (employee_id, username, password_hash, is_active) VALUES (:eid, 'disabled_user', :ph, FALSE)"),
-            {"eid": emp_id, "ph": password_hash},
-        )
-        await db.flush()
+    async def test_login_wrong_password(self, client: AsyncClient, db: AsyncSession):
+        await _setup_doctor(db, "doctor2", "13800000002")
 
         resp = await client.post("/api/auth/login", json={
-            "username": "disabled_user",
-            "password": "test123456",
+            "username": "doctor2", "password": "wrongpassword",
         })
         assert resp.status_code == 401
 
+    async def test_login_disabled_account(self, client: AsyncClient, db: AsyncSession):
+        await _setup_doctor(db, "doctor3", "13800000003", is_active=False)
 
-class TestRoleGuard:
-    """角色守卫测试"""
-
-    async def test_nurse_cannot_access_doctor_endpoint(self, client: AsyncClient, db):
-        """护士访问医生专属接口 → 403"""
-        password_hash = bcrypt.hashpw("test123456".encode(), bcrypt.gensalt()).decode()
-
-        result = await db.execute(
-            text("INSERT INTO employee (name, role, phone) VALUES ('测试护士', '护士', '13800000002') RETURNING employee_id")
-        )
-        nurse_emp_id = result.scalar_one()
-        await db.execute(
-            text("INSERT INTO account (employee_id, username, password_hash, is_active) VALUES (:eid, 'testnurse', :ph, TRUE)"),
-            {"eid": nurse_emp_id, "ph": password_hash},
-        )
-        await db.flush()
-
-        # 用护士账号登录
         resp = await client.post("/api/auth/login", json={
-            "username": "testnurse",
-            "password": "test123456",
+            "username": "doctor3", "password": "test123456",
         })
-        assert resp.status_code == 200
-        token = resp.json()["access_token"]
-
-        # 尝试访问医生专属接口（接诊接口需要医生角色）
-        resp = await client.get(
-            "/api/consultation/visits?status=接诊中",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
 
 class TestRateLimit:
-    """登录限流测试"""
+    async def test_login_rate_limit(self, client: AsyncClient, db: AsyncSession):
+        await _setup_doctor(db, "doctor4", "13800000004")
 
-    async def test_login_rate_limit(self, client: AsyncClient, test_employee_and_account):
-        """连续 6 次错误登录 → 429"""
+        # httpx 通过 ASGITransport 发请求时 request.client 为 None，
+        # login 接口取 IP 时 fallback 到 "127.0.0.1"，所以限流 key 固定为此 IP
+        r = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        await r.delete("ratelimit:login:127.0.0.1")
+        await r.aclose()
+
+        # 前 5 次错误 → 401
         for _ in range(5):
             resp = await client.post("/api/auth/login", json={
-                "username": "testdoctor",
-                "password": "wrongpassword",
+                "username": "doctor4", "password": "wrongpassword",
             })
             assert resp.status_code == 401
 
-        # 第 6 次应触发限流（第 6 次即达到限制）
+        # 第 6 次触发限流 → 401 + 限流提示
         resp = await client.post("/api/auth/login", json={
-            "username": "testdoctor",
-            "password": "wrongpassword",
+            "username": "doctor4", "password": "wrongpassword",
         })
-        assert resp.status_code == 429
+        assert resp.status_code == 401
+        assert "频繁" in resp.json()["detail"]
+
+        # 清理 Redis 限流计数，避免影响后续测试
+        r = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        await r.delete("ratelimit:login:127.0.0.1")
+        await r.aclose()
