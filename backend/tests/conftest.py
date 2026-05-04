@@ -11,8 +11,10 @@ async def db():
     """模块级数据库会话，模块内所有测试共享，模块结束后统一回滚"""
     async with async_session() as session:
         yield session
-        # 测试结束回滚所有数据，不污染数据库
         await session.rollback()
+    # 重置连接池，避免跨模块 event loop 隔离导致的连接失效
+    from app.shared.pg_db import engine
+    await engine.dispose()
 
 
 @pytest.fixture(scope="module")
