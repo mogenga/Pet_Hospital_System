@@ -28,12 +28,14 @@ app.add_exception_handler(AppError, app_error_handler)
 from app.modules.auth.router import router as auth_router
 from app.modules.consultation.router import router as consultation_router
 from app.modules.customer.router import router as customer_router
+from app.modules.billing.router import router as billing_router
 from app.modules.pharmacy.router import router as pharmacy_router
 
 app.include_router(auth_router)
 app.include_router(consultation_router)
 app.include_router(customer_router)
 app.include_router(pharmacy_router)
+app.include_router(billing_router)
 
 
 @app.get("/api/health")
