@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Tech stack:** FastAPI + React + PostgreSQL + Redis + MinIO + MongoDB (see `docs/superpowers/specs/2026-05-01-system-architecture-design.md` for full architecture).
 
-**Current state:** Design phase complete. No backend/frontend code yet. The database SQL (`pet_hospital_pg.sql`) and design docs are the ground truth.
+**Current state:** 后端 6/10 阶段完成（auth / pharmacy / customer / consultation / billing），前端尚未开始。PostgreSQL schema（`backend/sql/init_db.sql`）为数据权威源。
 
 ---
 
