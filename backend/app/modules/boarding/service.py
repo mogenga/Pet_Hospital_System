@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 from sqlalchemy import text
@@ -5,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import Conflict, NotFound
 from app.modules.boarding.schemas import BoardingCreate
+from app.shared.redis import redis_client
 
 
 async def create_boarding(db: AsyncSession, data: BoardingCreate) -> dict:
@@ -36,6 +38,7 @@ async def create_boarding(db: AsyncSession, data: BoardingCreate) -> dict:
         {"wid": data.ward_id},
     )
     await db.flush()
+    await redis_client.delete("ward:status")
 
     return {
         "boarding_id": bid,
@@ -135,6 +138,7 @@ async def end_boarding(db: AsyncSession, boarding_id: int) -> dict:
         {"wid": row.ward_id},
     )
     await db.flush()
+    await redis_client.delete("ward:status")
 
     # 计算寄养费用
     days = (today - row.start_date).days

@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 from sqlalchemy import text
@@ -6,7 +7,15 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.exceptions import AppError, Conflict, NotFound
 from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate
+from app.shared.redis import redis_client
 from app.shared.services.billing_service import add_item as billing_add_item
+
+CACHE_KEY = "ward:status"
+CACHE_TTL = 300  # 5 分钟
+
+
+async def _invalidate_cache():
+    await redis_client.delete(CACHE_KEY)
 
 
 async def _ensure_mongo_indexes(mongo_db: AsyncIOMotorDatabase):
@@ -16,10 +25,14 @@ async def _ensure_mongo_indexes(mongo_db: AsyncIOMotorDatabase):
 
 
 async def list_wards(db: AsyncSession) -> list[dict]:
+    cached = await redis_client.get(CACHE_KEY)
+    if cached:
+        return json.loads(cached)
+
     result = await db.execute(
         text("SELECT ward_id, ward_no, type, status, daily_rate FROM ward ORDER BY ward_no")
     )
-    return [
+    data = [
         {
             "ward_id": row.ward_id,
             "ward_no": row.ward_no,
@@ -29,6 +42,8 @@ async def list_wards(db: AsyncSession) -> list[dict]:
         }
         for row in result.fetchall()
     ]
+    await redis_client.set(CACHE_KEY, json.dumps(data, ensure_ascii=False), ex=CACHE_TTL)
+    return data
 
 
 async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
@@ -77,6 +92,7 @@ async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
         {"wid": data.ward_id},
     )
     await db.flush()
+    await _invalidate_cache()
 
     return {
         "hosp_id": hosp_id,
@@ -270,6 +286,7 @@ async def discharge(db: AsyncSession, hosp_id: int, discharge_date: date | None 
     )
 
     await db.flush()
+    await _invalidate_cache()
 
     return {
         "hosp_id": hosp_id,

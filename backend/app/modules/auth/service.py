@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from redis.asyncio import Redis
@@ -12,6 +13,14 @@ from app.core.security import (
     verify_password,
 )
 from app.modules.auth.schemas import AccountCreate, AccountOut, EmployeeOut, LoginResponse, UserInfo
+from app.shared.redis import redis_client
+
+CACHE_KEY = "employee:list"
+CACHE_TTL = 3600  # 60 分钟
+
+
+async def _invalidate_cache():
+    await redis_client.delete(CACHE_KEY)
 
 
 async def check_login_rate_limit(redis: Redis, ip: str):
@@ -121,6 +130,7 @@ async def create_account(db: AsyncSession, data: AccountCreate) -> AccountOut:
         {"eid": data.employee_id, "username": data.username, "ph": password_hash},
     )
     row = result.fetchone()
+    await _invalidate_cache()
     return AccountOut(
         account_id=row.account_id,
         employee_id=row.employee_id,
@@ -170,10 +180,18 @@ async def toggle_account(db: AsyncSession, account_id: int, is_active: bool) -> 
 
 
 async def list_employees(db: AsyncSession) -> list[EmployeeOut]:
+    cached = await redis_client.get(CACHE_KEY)
+    if cached:
+        items = json.loads(cached)
+        return [EmployeeOut.model_validate(item) for item in items]
+
     result = await db.execute(
         text("SELECT employee_id, name, role, phone FROM employee ORDER BY employee_id")
     )
-    return [EmployeeOut.model_validate(row._mapping) for row in result.fetchall()]
+    rows = result.fetchall()
+    data = [EmployeeOut.model_validate(row._mapping).model_dump(mode="json") for row in rows]
+    await redis_client.set(CACHE_KEY, json.dumps(data, ensure_ascii=False), ex=CACHE_TTL)
+    return [EmployeeOut.model_validate(row._mapping) for row in rows]
 
 
 async def delete_account(db: AsyncSession, account_id: int):

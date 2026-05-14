@@ -1,15 +1,33 @@
+import json
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, Conflict, NotFound
 from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut
+from app.shared.redis import redis_client
+
+CACHE_KEY = "medicine:list"
+CACHE_TTL = 1800  # 30 分钟
+
+
+async def _invalidate_cache():
+    await redis_client.delete(CACHE_KEY)
 
 
 async def list_medicines(db: AsyncSession) -> list[MedicineOut]:
+    cached = await redis_client.get(CACHE_KEY)
+    if cached:
+        items = json.loads(cached)
+        return [MedicineOut.model_validate(item) for item in items]
+
     result = await db.execute(
         text("SELECT medicine_id, name, unit, unit_price, category FROM medicine ORDER BY medicine_id")
     )
-    return [MedicineOut.model_validate(row._mapping) for row in result.fetchall()]
+    rows = result.fetchall()
+    data = [MedicineOut.model_validate(row._mapping).model_dump(mode="json") for row in rows]
+    await redis_client.set(CACHE_KEY, json.dumps(data, ensure_ascii=False), ex=CACHE_TTL)
+    return [MedicineOut.model_validate(row._mapping) for row in rows]
 
 
 async def create_medicine(db: AsyncSession, data: MedicineCreate) -> MedicineOut:
@@ -22,6 +40,7 @@ async def create_medicine(db: AsyncSession, data: MedicineCreate) -> MedicineOut
         {"name": data.name, "unit": data.unit, "price": data.unit_price, "cat": data.category},
     )
     row = result.fetchone()
+    await _invalidate_cache()
     return MedicineOut.model_validate(row._mapping)
 
 
@@ -70,6 +89,7 @@ async def create_batch(db: AsyncSession, data: BatchCreate) -> BatchOut:
         },
     )
     batch_id = result.scalar_one()
+    await _invalidate_cache()
 
     return BatchOut(
         batch_id=batch_id,
@@ -124,4 +144,5 @@ async def deduct_stock(db: AsyncSession, medicine_id: int, quantity: int) -> dic
         )
         remaining -= take
 
+    await _invalidate_cache()
     return {"medicine_id": medicine_id, "deducted": quantity}

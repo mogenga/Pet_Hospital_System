@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Receipt, DollarSign, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Receipt, DollarSign, FileText, Loader2, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useBillDetail, useSettleBill } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
@@ -169,6 +169,26 @@ export default function BillingDetail() {
                   <Loader2 className="animate-spin" />
                 )}
                 结账
+              </Button>
+            )}
+            {bill.status === "已结清" && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(
+                      `http://localhost:8000/api/billing/bills/${bill.bill_id}/download`,
+                      { headers: { Authorization: `Bearer ${useAuthStore.getState().token}` } }
+                    );
+                    const data = await res.json();
+                    window.open(data.url, "_blank");
+                  } catch {
+                    toast.error("下载失败");
+                  }
+                }}
+              >
+                <Download className="size-4" />
+                下载PDF
               </Button>
             )}
           </div>

@@ -31,9 +31,11 @@ from app.modules.customer.router import router as customer_router
 from app.modules.billing.router import router as billing_router
 from app.modules.boarding.router import router as boarding_router
 from app.modules.hospitalization.router import router as hospitalization_router
+from app.modules.minio_upload.router import router as minio_upload_router
 from app.modules.pharmacy.router import router as pharmacy_router
 
 app.include_router(auth_router)
+app.include_router(minio_upload_router)
 app.include_router(consultation_router)
 app.include_router(customer_router)
 app.include_router(pharmacy_router)
