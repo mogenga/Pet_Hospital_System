@@ -3,6 +3,7 @@
 .idea
 
 docs/superpowers
+.superpowers/
 
 # Python
 __pycache__/
