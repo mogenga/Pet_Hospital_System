@@ -29,6 +29,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.consultation.router import router as consultation_router
 from app.modules.customer.router import router as customer_router
 from app.modules.billing.router import router as billing_router
+from app.modules.boarding.router import router as boarding_router
 from app.modules.hospitalization.router import router as hospitalization_router
 from app.modules.pharmacy.router import router as pharmacy_router
 
@@ -38,6 +39,7 @@ app.include_router(customer_router)
 app.include_router(pharmacy_router)
 app.include_router(billing_router)
 app.include_router(hospitalization_router)
+app.include_router(boarding_router)
 
 
 @app.get("/api/health")
