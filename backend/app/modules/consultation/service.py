@@ -54,6 +54,79 @@ async def create_visit(db: AsyncSession, data: VisitCreate) -> VisitOut:
     return VisitOut.model_validate(row._mapping)
 
 
+async def get_visit(db: AsyncSession, visit_id: int) -> dict:
+    """获取单个就诊详情，含诊断和处方信息"""
+    result = await db.execute(
+        text(
+            "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status, "
+            "p.name AS pet_name, p.species, p.breed, c.name AS customer_name, "
+            "e.name AS doctor_name "
+            "FROM visit v "
+            "JOIN pet p ON v.pet_id = p.pet_id "
+            "JOIN customer c ON p.customer_id = c.customer_id "
+            "JOIN employee e ON v.employee_id = e.employee_id "
+            "WHERE v.visit_id = :id"
+        ),
+        {"id": visit_id},
+    )
+    row = result.fetchone()
+    if row is None:
+        raise NotFound(detail="就诊记录不存在")
+
+    visit_data = {
+        "visit_id": row.visit_id,
+        "pet_id": row.pet_id,
+        "pet_name": row.pet_name,
+        "species": row.species,
+        "breed": row.breed,
+        "customer_name": row.customer_name,
+        "employee_id": row.employee_id,
+        "doctor_name": row.doctor_name,
+        "visit_time": row.visit_time.isoformat(),
+        "complaint": row.complaint,
+        "status": row.status,
+        "diagnosis": None,
+        "prescriptions": [],
+    }
+
+    # 查诊断
+    diag = await db.execute(
+        text("SELECT diagnosis_id, diagnosis_result, notes FROM diagnosis WHERE visit_id = :vid"),
+        {"vid": visit_id},
+    )
+    diag_row = diag.fetchone()
+    if diag_row:
+        visit_data["diagnosis"] = {
+            "diagnosis_id": diag_row.diagnosis_id,
+            "diagnosis_result": diag_row.diagnosis_result,
+            "notes": diag_row.notes,
+        }
+        # 查处方明细
+        rx = await db.execute(
+            text(
+                "SELECT pi.item_id, pi.batch_id, pi.quantity, pi.dosage, "
+                "m.name AS medicine_name "
+                "FROM prescription_item pi "
+                "JOIN medicine_batch mb ON pi.batch_id = mb.batch_id "
+                "JOIN medicine m ON mb.medicine_id = m.medicine_id "
+                "WHERE pi.diagnosis_id = :did"
+            ),
+            {"did": diag_row.diagnosis_id},
+        )
+        visit_data["prescriptions"] = [
+            {
+                "item_id": rx_row.item_id,
+                "batch_id": rx_row.batch_id,
+                "medicine_name": rx_row.medicine_name,
+                "quantity": rx_row.quantity,
+                "dosage": rx_row.dosage,
+            }
+            for rx_row in rx.fetchall()
+        ]
+
+    return visit_data
+
+
 async def accept_visit(db: AsyncSession, visit_id: int) -> VisitOut:
     result = await db.execute(
         text("SELECT visit_id, pet_id, employee_id, visit_time, complaint, status FROM visit WHERE visit_id = :id"),

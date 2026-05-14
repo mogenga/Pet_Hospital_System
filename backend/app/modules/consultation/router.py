@@ -18,6 +18,7 @@ from app.modules.consultation.service import (
     cancel_visit,
     create_diagnosis,
     create_visit,
+    get_visit,
     list_visits,
 )
 from app.shared.mongo_db import mongo_db
@@ -33,6 +34,16 @@ async def list_visits_endpoint(
     user: dict = Depends(get_current_user),
 ):
     return await list_visits(db, status)
+
+
+@router.get("/api/consultation/visits/{visit_id}")
+async def get_visit_endpoint(
+    visit_id: int,
+    db: AsyncSession = Depends(get_pg_db),
+    user: dict = Depends(get_current_user),
+):
+    """就诊详情（含诊断、处方明细）"""
+    return await get_visit(db, visit_id)
 
 
 @router.post("/api/consultation/visits", status_code=201, response_model=VisitOut)

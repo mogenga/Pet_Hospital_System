@@ -32,9 +32,9 @@ async def ward_list(
 async def admit_hospitalization(
     data: AdmitCreate,
     db: AsyncSession = Depends(get_pg_db),
-    _current_user=Depends(get_current_user),
+    _current_user=Depends(require_role("管理员", "医生")),
 ):
-    """转入住院（医生/管理员）"""
+    """转入住院（管理员/医生）"""
     result = await admit(db, data)
     return JSONResponse(content=result, status_code=201)
 

@@ -13,9 +13,9 @@ async def add_bill_item(
     visit_id: int,
     data: BillItemCreate,
     db: AsyncSession = Depends(get_pg_db),
-    _current_user=Depends(get_current_user),
+    _current_user=Depends(require_role("管理员", "医生")),
 ):
-    """生成收费项（医生/管理员）"""
+    """生成收费项（管理员/医生）"""
     result = await create_bill_item(db, visit_id, data)
     status_code = 200 if result["is_duplicate"] else 201
     from fastapi.responses import JSONResponse
