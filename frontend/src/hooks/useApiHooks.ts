@@ -215,7 +215,7 @@ export function useAddBillItem() {
   return useMutation({
     mutationFn: ({ visitId, data }: { visitId: number; data: BillItemCreate }) =>
       apiClient.post(`/api/billing/visits/${visitId}/items`, data).then((r) => r.data),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       qc.invalidateQueries({ queryKey: ["bills"] });
     },
   });
@@ -325,7 +325,7 @@ export function useEndBoarding() {
   return useMutation({
     mutationFn: (boardingId: number): Promise<EndBoardingResponse> =>
       apiClient.put(`/api/boarding/${boardingId}/end`).then((r) => r.data),
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       qc.invalidateQueries({ queryKey: ["boardings"] });
       qc.invalidateQueries({ queryKey: ["wards"] });
     },

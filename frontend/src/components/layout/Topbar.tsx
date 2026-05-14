@@ -1,7 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -39,15 +38,13 @@ export default function Topbar() {
       <span className="text-sm text-muted-foreground">{getBreadcrumb()}</span>
 
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm">{user?.name}</span>
-          </Button>
+        <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm">{user?.name}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>
