@@ -119,6 +119,8 @@ class TestBoardingFlow:
         assert resp.status_code == 200
         data = resp.json()
         assert data["end_date"] is not None
+        assert "total_fee" in data
+        assert float(data["total_fee"]) >= 50.0
 
     async def test_end_already_ended(self, client: AsyncClient, admin_token: str, test_setup: dict):
         """已结束寄养再次结束 → 409"""

@@ -48,22 +48,12 @@ async def add_item(
     """
     bill_id = await ensure_bill(db, visit_id)
 
-    # 先检查是否已存在（幂等）
-    existing = await db.execute(
-        text(
-            "SELECT bill_item_id FROM bill_item "
-            "WHERE bill_id = :bid AND source_type = :stype AND source_id = :sid"
-        ),
-        {"bid": bill_id, "stype": source_type, "sid": source_id},
-    )
-    row = existing.fetchone()
-    if row:
-        return {"bill_item_id": row.bill_item_id, "bill_id": bill_id, "is_duplicate": True}
-
+    # INSERT ... ON CONFLICT DO NOTHING — 并发安全
     result = await db.execute(
         text(
             "INSERT INTO bill_item (bill_id, item_type, source_type, source_id, description, amount) "
             "VALUES (:bid, :itype, :stype, :sid, :desc, :amt) "
+            "ON CONFLICT (bill_id, source_type, source_id) DO NOTHING "
             "RETURNING bill_item_id"
         ),
         {
@@ -75,5 +65,17 @@ async def add_item(
             "amt": amount,
         },
     )
-    await db.flush()
-    return {"bill_item_id": result.scalar_one(), "bill_id": bill_id, "is_duplicate": False}
+    row = result.fetchone()
+    if row:
+        await db.flush()
+        return {"bill_item_id": row.bill_item_id, "bill_id": bill_id, "is_duplicate": False}
+
+    # 冲突时查询已有记录
+    result = await db.execute(
+        text(
+            "SELECT bill_item_id FROM bill_item "
+            "WHERE bill_id = :bid AND source_type = :stype AND source_id = :sid"
+        ),
+        {"bid": bill_id, "stype": source_type, "sid": source_id},
+    )
+    return {"bill_item_id": result.scalar_one(), "bill_id": bill_id, "is_duplicate": True}

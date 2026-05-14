@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Body, Depends, Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, require_role
-from app.core.exceptions import Unauthorized
+from app.core.deps import get_current_user, oauth2_scheme, require_role
 from app.modules.auth.schemas import AccountCreate, AccountOut, LoginRequest, LoginResponse, UserInfo
 from app.modules.auth import service
 from app.shared.pg_db import get_pg_db
@@ -26,13 +25,10 @@ async def login(
 
 @router.post("/auth/logout")
 async def logout(
-    authorization: str = Header(...),
+    token: str = Depends(oauth2_scheme),
     redis: Redis = Depends(get_redis),
 ):
     """登出，JWT 加入黑名单"""
-    if not authorization.startswith("Bearer "):
-        raise Unauthorized(detail="无效的登录凭证")
-    token = authorization[7:]
     await service.logout(redis, token)
     return {"message": "已登出"}
 
@@ -65,7 +61,7 @@ async def create_account(
 @router.put("/accounts/{account_id}", response_model=AccountOut)
 async def toggle_account(
     account_id: int,
-    is_active: bool,
+    is_active: bool = Body(...),
     db: AsyncSession = Depends(get_pg_db),
     _: dict = Depends(require_role("管理员")),
 ):

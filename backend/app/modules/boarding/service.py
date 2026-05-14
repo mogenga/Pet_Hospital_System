@@ -110,8 +110,9 @@ async def get_boarding_detail(db: AsyncSession, boarding_id: int) -> dict:
 async def end_boarding(db: AsyncSession, boarding_id: int) -> dict:
     result = await db.execute(
         text(
-            "SELECT b.boarding_id, b.ward_id, b.end_date "
+            "SELECT b.boarding_id, b.ward_id, b.start_date, b.end_date, w.daily_rate "
             "FROM boarding b "
+            "JOIN ward w ON b.ward_id = w.ward_id "
             "WHERE b.boarding_id = :id FOR UPDATE"
         ),
         {"id": boarding_id},
@@ -135,4 +136,15 @@ async def end_boarding(db: AsyncSession, boarding_id: int) -> dict:
     )
     await db.flush()
 
-    return {"boarding_id": boarding_id, "end_date": str(today)}
+    # 计算寄养费用
+    days = (today - row.start_date).days
+    if days < 1:
+        days = 1
+    fee = float(row.daily_rate) * days
+
+    return {
+        "boarding_id": boarding_id,
+        "end_date": str(today),
+        "days": days,
+        "total_fee": str(fee),
+    }

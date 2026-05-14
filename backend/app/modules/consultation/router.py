@@ -88,7 +88,7 @@ async def get_customer_history_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     user: dict = Depends(require_role("医生")),
 ):
-    """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records）"""
+    """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records，批量查询消除 N+1）"""
     visits = await db.execute(
         text(
             "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status "
@@ -99,7 +99,31 @@ async def get_customer_history_endpoint(
         {"cid": customer_id},
     )
     visit_rows = visits.fetchall()
+    if not visit_rows:
+        return []
 
+    # 批量查询 diagnosis（一次 PG 查询）
+    visit_ids = [v.visit_id for v in visit_rows]
+    diag_result = await db.execute(
+        text(
+            "SELECT diagnosis_id, visit_id, diagnosis_result, notes "
+            "FROM diagnosis WHERE visit_id = ANY(:vids)"
+        ),
+        {"vids": visit_ids},
+    )
+    diag_rows = diag_result.fetchall()
+
+    # 批量查询 MongoDB 病历（一次 MongoDB 查询）
+    diag_ids = [d.diagnosis_id for d in diag_rows]
+    mongo_docs = {}
+    if diag_ids:
+        cursor = mongo_db.medical_records.find({"diagnosis_id": {"$in": diag_ids}})
+        async for doc in cursor:
+            doc.pop("_id", None)
+            mongo_docs[doc["diagnosis_id"]] = doc
+
+    # 组装结果
+    diag_by_visit = {d.visit_id: d for d in diag_rows}
     result = []
     for v in visit_rows:
         visit_data = {
@@ -112,24 +136,14 @@ async def get_customer_history_endpoint(
             "diagnosis": None,
             "medical_record": None,
         }
-
-        # 查诊断（PG）
-        diag = await db.execute(
-            text("SELECT diagnosis_id, diagnosis_result, notes FROM diagnosis WHERE visit_id = :vid"),
-            {"vid": v.visit_id},
-        )
-        diag_row = diag.fetchone()
-        if diag_row:
+        d = diag_by_visit.get(v.visit_id)
+        if d:
             visit_data["diagnosis"] = {
-                "diagnosis_id": diag_row.diagnosis_id,
-                "diagnosis_result": diag_row.diagnosis_result,
-                "notes": diag_row.notes,
+                "diagnosis_id": d.diagnosis_id,
+                "diagnosis_result": d.diagnosis_result,
+                "notes": d.notes,
             }
-            # 查 MongoDB 病历
-            mongo_doc = await mongo_db.medical_records.find_one({"diagnosis_id": diag_row.diagnosis_id})
-            if mongo_doc:
-                mongo_doc.pop("_id", None)
-                visit_data["medical_record"] = mongo_doc
+            visit_data["medical_record"] = mongo_docs.get(d.diagnosis_id)
 
         result.append(visit_data)
 

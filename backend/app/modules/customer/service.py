@@ -3,7 +3,7 @@ import json
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFound
+from app.core.exceptions import Conflict, NotFound
 from app.modules.customer.schemas import (
     CustomerCreate,
     CustomerOut,
@@ -31,25 +31,35 @@ async def list_customers(db: AsyncSession) -> list[CustomerOut]:
     result = await db.execute(
         text("SELECT customer_id, name, phone, address FROM customer ORDER BY customer_id")
     )
-    customers: list[CustomerOut] = []
-    for row in result.fetchall():
-        pet_result = await db.execute(
-            text(
-                "SELECT pet_id, customer_id, name, species, breed, birth_date "
-                "FROM pet WHERE customer_id = :cid ORDER BY pet_id"
-            ),
-            {"cid": row.customer_id},
+    customer_rows = result.fetchall()
+    if not customer_rows:
+        return []
+
+    # 批量查询所有宠物，消除 N+1
+    customer_ids = [row.customer_id for row in customer_rows]
+    pet_result = await db.execute(
+        text(
+            "SELECT pet_id, customer_id, name, species, breed, birth_date "
+            "FROM pet WHERE customer_id = ANY(:cids) ORDER BY pet_id"
+        ),
+        {"cids": customer_ids},
+    )
+    pets_by_customer: dict[int, list] = {}
+    for p in pet_result.fetchall():
+        pets_by_customer.setdefault(p.customer_id, []).append(
+            PetOut.model_validate(p._mapping)
         )
-        pets = [PetOut.model_validate(p._mapping) for p in pet_result.fetchall()]
-        customers.append(
-            CustomerOut(
-                customer_id=row.customer_id,
-                name=row.name,
-                phone=row.phone,
-                address=row.address,
-                pets=pets,
-            )
+
+    customers = [
+        CustomerOut(
+            customer_id=row.customer_id,
+            name=row.name,
+            phone=row.phone,
+            address=row.address,
+            pets=pets_by_customer.get(row.customer_id, []),
         )
+        for row in customer_rows
+    ]
 
     data = [c.model_dump(mode="json") for c in customers]
     await redis_client.set(CACHE_KEY, json.dumps(data, ensure_ascii=False), ex=CACHE_TTL)
@@ -83,6 +93,14 @@ async def get_customer(db: AsyncSession, customer_id: int) -> CustomerOut:
 
 
 async def create_customer(db: AsyncSession, data: CustomerCreate) -> CustomerOut:
+    # 检查手机号唯一
+    existing = await db.execute(
+        text("SELECT 1 FROM customer WHERE phone = :phone"),
+        {"phone": data.phone},
+    )
+    if existing.fetchone():
+        raise Conflict(detail="手机号已存在")
+
     result = await db.execute(
         text(
             "INSERT INTO customer (name, phone, address) "
