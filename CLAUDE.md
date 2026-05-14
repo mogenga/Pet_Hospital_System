@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Tech stack:** FastAPI + React + PostgreSQL + Redis + MinIO + MongoDB (see `docs/superpowers/specs/2026-05-01-system-architecture-design.md` for full architecture).
 
-**Current state:** 后端 6/10 阶段完成（auth / pharmacy / customer / consultation / billing），前端尚未开始。PostgreSQL schema（`backend/sql/init_db.sql`）为数据权威源。
+**Current state:** 后端 8/10 阶段完成（auth / pharmacy / customer / consultation / billing / hospitalization / boarding），前端设计文档已完成，前端代码待开发。PostgreSQL schema（`backend/sql/init_db.sql`）为数据权威源。
 
 ---
 
@@ -23,6 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `docs/数据库设计文档.md` | PostgreSQL schema — all 15 tables, 3NF rationale, views, constraints |
 | `pet_hospital_pg.sql` | Executable DDL — the authoritative source of the database schema |
 | `docs/superpowers/plans/2026-05-01-system-implementation-plan.md` | Step-by-step implementation plan with dependency order, file lists, and TDD test scenarios |
+| `docs/superpowers/specs/2026-05-14-frontend-design.md` | 前端设计文档 — 色彩系统、布局、路由、状态管理、页面模式、实施顺序 |
 
 ---
 
