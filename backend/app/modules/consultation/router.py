@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, Query
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, require_role
@@ -91,71 +89,3 @@ async def cancel_visit_endpoint(
     user: dict = Depends(require_role("管理员")),
 ):
     await cancel_visit(db, visit_id)
-
-
-@router.get("/api/customers/{customer_id}/history")
-async def get_customer_history_endpoint(
-    customer_id: int,
-    db: AsyncSession = Depends(get_pg_db),
-    user: dict = Depends(require_role("管理员", "医生")),
-):
-    """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records，批量查询消除 N+1）"""
-    visits = await db.execute(
-        text(
-            "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status "
-            "FROM visit v JOIN pet p ON v.pet_id = p.pet_id "
-            "WHERE p.customer_id = :cid "
-            "ORDER BY v.visit_time DESC"
-        ),
-        {"cid": customer_id},
-    )
-    visit_rows = visits.fetchall()
-    if not visit_rows:
-        return []
-
-    # 批量查询 diagnosis（一次 PG 查询）
-    visit_ids = [v.visit_id for v in visit_rows]
-    diag_result = await db.execute(
-        text(
-            "SELECT diagnosis_id, visit_id, diagnosis_result, notes "
-            "FROM diagnosis WHERE visit_id = ANY(:vids)"
-        ),
-        {"vids": visit_ids},
-    )
-    diag_rows = diag_result.fetchall()
-
-    # 批量查询 MongoDB 病历（一次 MongoDB 查询）
-    diag_ids = [d.diagnosis_id for d in diag_rows]
-    mongo_docs = {}
-    if diag_ids:
-        cursor = mongo_db.medical_records.find({"diagnosis_id": {"$in": diag_ids}})
-        async for doc in cursor:
-            doc.pop("_id", None)
-            mongo_docs[doc["diagnosis_id"]] = doc
-
-    # 组装结果
-    diag_by_visit = {d.visit_id: d for d in diag_rows}
-    result = []
-    for v in visit_rows:
-        visit_data = {
-            "visit_id": v.visit_id,
-            "pet_id": v.pet_id,
-            "employee_id": v.employee_id,
-            "visit_time": v.visit_time.isoformat(),
-            "complaint": v.complaint,
-            "status": v.status,
-            "diagnosis": None,
-            "medical_record": None,
-        }
-        d = diag_by_visit.get(v.visit_id)
-        if d:
-            visit_data["diagnosis"] = {
-                "diagnosis_id": d.diagnosis_id,
-                "diagnosis_result": d.diagnosis_result,
-                "notes": d.notes,
-            }
-            visit_data["medical_record"] = mongo_docs.get(d.diagnosis_id)
-
-        result.append(visit_data)
-
-    return result

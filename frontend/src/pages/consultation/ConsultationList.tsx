@@ -119,7 +119,7 @@ export default function ConsultationList() {
       {/* 状态筛选标签页 */}
       <Tabs
         value={activeTab}
-        onValueChange={(value: any) => setActiveTab(value as string)}
+        onValueChange={(value: string) => setActiveTab(value)}
       >
         <TabsList>
           {TAB_OPTIONS.map((tab) => (

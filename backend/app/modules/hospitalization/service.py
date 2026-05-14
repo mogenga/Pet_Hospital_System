@@ -18,12 +18,6 @@ async def _invalidate_cache():
     await redis_client.delete(CACHE_KEY)
 
 
-async def _ensure_mongo_indexes(mongo_db: AsyncIOMotorDatabase):
-    """确保 MongoDB nursing_logs 集合索引存在"""
-    await mongo_db.nursing_logs.create_index("record_id", unique=True, name="idx_nursing_record_id")
-    await mongo_db.nursing_logs.create_index("hosp_id", name="idx_nursing_hosp_id")
-
-
 async def list_wards(db: AsyncSession) -> list[dict]:
     cached = await redis_client.get(CACHE_KEY)
     if cached:
@@ -48,7 +42,7 @@ async def list_wards(db: AsyncSession) -> list[dict]:
 
 async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
     """转入住院：验证 visit 已诊断 + ward 空闲，同一事务内 INSERT + UPDATE ward"""
-    # 验证 visit 存在且有诊断
+    # 验证 visit 存在且有诊断（事务外只读检查）
     diag = await db.execute(
         text("SELECT diagnosis_id FROM diagnosis WHERE visit_id = :vid"),
         {"vid": data.visit_id},
@@ -56,7 +50,7 @@ async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
     if diag.fetchone() is None:
         raise AppError(detail="该就诊尚未完成诊断，无法转入住院")
 
-    # 验证 visit 是否已住院
+    # 验证 visit 是否已住院（事务外只读检查）
     existing = await db.execute(
         text("SELECT hosp_id FROM hospitalization WHERE visit_id = :vid"),
         {"vid": data.visit_id},
@@ -64,34 +58,36 @@ async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
     if existing.fetchone():
         raise Conflict(detail="该就诊已转入住院，不能重复转入")
 
-    # 锁定并检查笼位状态
-    ward = await db.execute(
-        text("SELECT ward_id, status FROM ward WHERE ward_id = :wid FOR UPDATE"),
-        {"wid": data.ward_id},
-    )
-    ward_row = ward.fetchone()
-    if ward_row is None:
-        raise NotFound(detail="笼位不存在")
-    if ward_row.status != "空闲":
-        raise Conflict(detail=f"笼位当前状态为'{ward_row.status}'，无法使用")
+    async with db.begin():
+        # 锁定并检查笼位状态
+        ward = await db.execute(
+            text("SELECT ward_id, status FROM ward WHERE ward_id = :wid FOR UPDATE"),
+            {"wid": data.ward_id},
+        )
+        ward_row = ward.fetchone()
+        if ward_row is None:
+            raise NotFound(detail="笼位不存在")
+        if ward_row.status != "空闲":
+            raise Conflict(detail=f"笼位当前状态为'{ward_row.status}'，无法使用")
 
-    # 转入住院
-    result = await db.execute(
-        text(
-            "INSERT INTO hospitalization (visit_id, ward_id, admit_date) "
-            "VALUES (:vid, :wid, :admit) "
-            "RETURNING hosp_id"
-        ),
-        {"vid": data.visit_id, "wid": data.ward_id, "admit": data.admit_date},
-    )
-    hosp_id = result.scalar_one()
+        # 转入住院
+        result = await db.execute(
+            text(
+                "INSERT INTO hospitalization (visit_id, ward_id, admit_date) "
+                "VALUES (:vid, :wid, :admit) "
+                "RETURNING hosp_id"
+            ),
+            {"vid": data.visit_id, "wid": data.ward_id, "admit": data.admit_date},
+        )
+        hosp_id = result.scalar_one()
 
-    # 更新笼位状态
-    await db.execute(
-        text("UPDATE ward SET status = '占用' WHERE ward_id = :wid"),
-        {"wid": data.ward_id},
-    )
-    await db.flush()
+        # 更新笼位状态
+        await db.execute(
+            text("UPDATE ward SET status = '占用' WHERE ward_id = :wid"),
+            {"wid": data.ward_id},
+        )
+
+    # 事务提交后刷新缓存
     await _invalidate_cache()
 
     return {
@@ -218,8 +214,7 @@ async def add_nursing_record(
         "content": row.content,
     }
 
-    # MongoDB 双写
-    await _ensure_mongo_indexes(mongo_db)
+    # MongoDB 双写（best-effort，辅助存储）
     doc = {
         "record_id": row.record_id,
         "hosp_id": hosp_id,
@@ -227,65 +222,69 @@ async def add_nursing_record(
         "record_time": row.record_time,
         "content": data.content,
     }
-    await mongo_db.nursing_logs.insert_one(doc)
+    try:
+        await mongo_db.nursing_logs.insert_one(doc)
+    except Exception:
+        pass  # MongoDB 为辅助存储，写入失败不影响业务流程
 
     await db.flush()
     return record
 
 
 async def discharge(db: AsyncSession, hosp_id: int, discharge_date: date | None = None) -> dict:
-    """出院：更新 hospitalization + 释放 ward + 自动生成住院费"""
+    """出院：更新 hospitalization + 释放 ward + 自动生成住院费（事务保护）"""
     if discharge_date is None:
         discharge_date = date.today()
 
-    hosp = await db.execute(
-        text(
-            "SELECT h.hosp_id, h.visit_id, h.ward_id, h.admit_date, h.status, w.daily_rate "
-            "FROM hospitalization h "
-            "JOIN ward w ON h.ward_id = w.ward_id "
-            "WHERE h.hosp_id = :id FOR UPDATE"
-        ),
-        {"id": hosp_id},
-    )
-    hosp_row = hosp.fetchone()
-    if hosp_row is None:
-        raise NotFound(detail="住院记录不存在")
-    if hosp_row.status == "已出院":
-        raise Conflict(detail="已出院，无需重复操作")
+    async with db.begin():
+        hosp = await db.execute(
+            text(
+                "SELECT h.hosp_id, h.visit_id, h.ward_id, h.admit_date, h.status, w.daily_rate "
+                "FROM hospitalization h "
+                "JOIN ward w ON h.ward_id = w.ward_id "
+                "WHERE h.hosp_id = :id FOR UPDATE"
+            ),
+            {"id": hosp_id},
+        )
+        hosp_row = hosp.fetchone()
+        if hosp_row is None:
+            raise NotFound(detail="住院记录不存在")
+        if hosp_row.status == "已出院":
+            raise Conflict(detail="已出院，无需重复操作")
 
-    # 计算住院天数（至少 1 天）
-    days = (discharge_date - hosp_row.admit_date).days
-    if days < 1:
-        days = 1
-    fee = float(hosp_row.daily_rate) * days
+        # 计算住院天数（至少 1 天）
+        days = (discharge_date - hosp_row.admit_date).days
+        if days < 1:
+            days = 1
+        fee = float(hosp_row.daily_rate) * days
 
-    # 更新住院记录
-    await db.execute(
-        text(
-            "UPDATE hospitalization SET discharge_date = :ddate, status = '已出院' "
-            "WHERE hosp_id = :id"
-        ),
-        {"ddate": discharge_date, "id": hosp_id},
-    )
+        # 更新住院记录
+        await db.execute(
+            text(
+                "UPDATE hospitalization SET discharge_date = :ddate, status = '已出院' "
+                "WHERE hosp_id = :id"
+            ),
+            {"ddate": discharge_date, "id": hosp_id},
+        )
 
-    # 释放笼位
-    await db.execute(
-        text("UPDATE ward SET status = '空闲' WHERE ward_id = :wid"),
-        {"wid": hosp_row.ward_id},
-    )
+        # 释放笼位
+        await db.execute(
+            text("UPDATE ward SET status = '空闲' WHERE ward_id = :wid"),
+            {"wid": hosp_row.ward_id},
+        )
 
-    # 自动生成住院费（调 BillingService）
-    await billing_add_item(
-        db,
-        visit_id=hosp_row.visit_id,
-        item_type="住院费",
-        source_type="hospitalization",
-        source_id=hosp_id,
-        amount=fee,
-        description=f"住院{days}天 × ¥{hosp_row.daily_rate}/天",
-    )
+        # 自动生成住院费（调 BillingService，同一事务内）
+        await billing_add_item(
+            db,
+            visit_id=hosp_row.visit_id,
+            item_type="住院费",
+            source_type="hospitalization",
+            source_id=hosp_id,
+            amount=fee,
+            description=f"住院{days}天 × ¥{hosp_row.daily_rate}/天",
+        )
 
-    await db.flush()
+    # 事务提交后刷新缓存
     await _invalidate_cache()
 
     return {

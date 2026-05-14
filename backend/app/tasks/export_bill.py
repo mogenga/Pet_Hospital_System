@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import logging
 from datetime import datetime
 
 from reportlab.lib import colors
@@ -16,6 +17,8 @@ from app.core.config import settings
 from app.shared.minio import ensure_bucket, minio_client
 
 from .celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 # 同步引擎用于 Celery 任务（Celery worker 不共享 FastAPI 的 async engine）
 SYNC_PG_URL = settings.PG_URL.replace("+asyncpg", "+psycopg2")
@@ -121,14 +124,19 @@ async def _generate_and_upload_pdf(bill_id: int):
     # 上传 MinIO
     buf.seek(0)
     file_key = f"exports/bills/{bill_id}.pdf"
-    ensure_bucket()
-    minio_client.put_object(
-        bucket_name=settings.MINIO_BUCKET,
-        object_name=file_key,
-        data=buf,
-        length=buf.getbuffer().nbytes,
-        content_type="application/pdf",
-    )
+    try:
+        ensure_bucket()
+        minio_client.put_object(
+            bucket_name=settings.MINIO_BUCKET,
+            object_name=file_key,
+            data=buf,
+            length=buf.getbuffer().nbytes,
+            content_type="application/pdf",
+        )
+        logger.info(f"账单 PDF 已导出: {file_key}")
+    except Exception as e:
+        logger.error(f"账单 PDF 上传 MinIO 失败 bill_id={bill_id}: {e}")
+        raise  # 重新抛出，让 Celery/BackgroundTasks 感知失败
 
     return file_key
 

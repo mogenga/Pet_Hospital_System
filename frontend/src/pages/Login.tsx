@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +19,12 @@ export default function Login() {
     try {
       await login(username, password);
       navigate("/dashboard", { replace: true });
-    } catch {
-      // 错误已由拦截器 toast 处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     } finally {
       setLoading(false);
     }

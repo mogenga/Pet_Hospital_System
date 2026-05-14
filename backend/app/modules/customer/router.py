@@ -11,6 +11,7 @@ from app.modules.customer.schemas import (
     PetOut,
     PetUpdate,
 )
+from app.shared.mongo_db import mongo_db
 from app.shared.pg_db import get_pg_db
 
 router = APIRouter(prefix="/api/customers")
@@ -98,3 +99,13 @@ async def delete_pet(
 ):
     """删除宠物（管理员）"""
     await service.delete_pet(db, customer_id, pet_id)
+
+
+@router.get("/{customer_id}/history")
+async def customer_history(
+    customer_id: int,
+    db: AsyncSession = Depends(get_pg_db),
+    user: dict = Depends(require_role("管理员", "医生")),
+):
+    """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records）"""
+    return await service.get_customer_history(db, mongo_db, customer_id)

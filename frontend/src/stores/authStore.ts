@@ -12,6 +12,8 @@ interface AuthState {
   hasRole: (...roles: string[]) => boolean;
 }
 
+// 注意：生产环境应使用 httpOnly cookie 存储 JWT，避免 XSS 窃取
+// 当前 localStorage 方案适用于内网部署
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({

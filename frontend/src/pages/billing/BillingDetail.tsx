@@ -41,8 +41,12 @@ export default function BillingDetail() {
       await settleBill.mutateAsync(bill.bill_id);
       toast.success(`账单 #${bill.bill_id} 已结清`);
       setShowSettleConfirm(false);
-    } catch {
-      // 错误提示已在 apiClient 拦截器中处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     }
   };
 

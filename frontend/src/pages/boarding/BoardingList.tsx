@@ -107,8 +107,12 @@ function AddBoardingDialog({
       setWardId("");
       setStartDate("");
       onOpenChange(false);
-    } catch {
-      // 错误提示已在 apiClient 拦截器中处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     }
   };
 
@@ -209,8 +213,12 @@ export default function BoardingList() {
         `寄养已结束：共寄养 ${data.days} 天，费用 ${Number(data.total_fee).toFixed(2)} 元`
       );
       setEndTarget(null);
-    } catch {
-      // 错误提示已在 apiClient 拦截器中处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     }
   };
 

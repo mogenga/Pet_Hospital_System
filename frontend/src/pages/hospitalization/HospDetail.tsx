@@ -65,8 +65,12 @@ function AddNursingForm({ hospId }: { hospId: number }) {
       });
       toast.success("护理记录已添加");
       setContent("");
-    } catch {
-      // 错误提示已在 apiClient 拦截器中处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     }
   };
 
@@ -117,8 +121,12 @@ export default function HospDetail() {
       await discharge.mutateAsync(hosp.hosp_id);
       toast.success("出院成功，住院费已自动生成");
       setShowDischarge(false);
-    } catch {
-      // 错误提示已在 apiClient 拦截器中处理
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'response' in e) {
+        // 错误已由拦截器处理
+      } else {
+        toast.error("操作失败，请检查网络连接");
+      }
     }
   };
 

@@ -9,8 +9,27 @@ from app.shared.minio import ensure_bucket
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 启动时初始化
     ensure_bucket()
+
+    # 确保 MongoDB 索引（避免每次请求重复创建）
+    from app.shared.mongo_db import mongo_db as _mongo
+    try:
+        await _mongo.medical_records.create_index("diagnosis_id", unique=True, name="idx_diagnosis_id")
+        await _mongo.medical_records.create_index("visit_id", name="idx_visit_id")
+        await _mongo.medical_records.create_index("created_by", name="idx_created_by")
+        await _mongo.nursing_logs.create_index("record_id", unique=True, name="idx_nursing_record_id")
+        await _mongo.nursing_logs.create_index("hosp_id", name="idx_nursing_hosp_id")
+    except Exception:
+        pass  # 索引可能已存在
+
     yield
+
+    # 关闭时清理连接
+    from app.shared.redis import redis_client as _redis
+    from app.shared.mongo_db import mongo_client as _mongo_client
+    await _redis.aclose()
+    _mongo_client.close()
 
 
 app = FastAPI(title="宠物医院诊疗与住院管理系统", version="0.1.0", lifespan=lifespan)
