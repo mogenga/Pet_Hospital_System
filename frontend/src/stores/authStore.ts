@@ -26,8 +26,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        apiClient.post("/api/auth/logout").catch(() => {});
+        const token = get().token;
         set({ token: null, user: null });
+        if (token) {
+          apiClient.post("/api/auth/logout").catch(() => {});
+        }
       },
 
       isAuthenticated: () => !!get().token,

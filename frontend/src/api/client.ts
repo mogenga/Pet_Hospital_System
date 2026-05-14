@@ -22,8 +22,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = "/login";
+      // /logout 自身 401 不触发二次登出，避免循环
+      if (!error.config?.url?.includes("/auth/logout")) {
+        useAuthStore.getState().logout();
+        window.location.href = "/login";
+      }
     } else if (error.response?.status === 403) {
       window.location.href = "/403";
     } else {
