@@ -11,7 +11,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.modules.auth.schemas import AccountCreate, AccountOut, LoginResponse, UserInfo
+from app.modules.auth.schemas import AccountCreate, AccountOut, EmployeeOut, LoginResponse, UserInfo
 
 
 async def check_login_rate_limit(redis: Redis, ip: str):
@@ -167,6 +167,13 @@ async def toggle_account(db: AsyncSession, account_id: int, is_active: bool) -> 
         last_login=row.last_login,
         created_at=row.created_at,
     )
+
+
+async def list_employees(db: AsyncSession) -> list[EmployeeOut]:
+    result = await db.execute(
+        text("SELECT employee_id, name, role, phone FROM employee ORDER BY employee_id")
+    )
+    return [EmployeeOut.model_validate(row._mapping) for row in result.fetchall()]
 
 
 async def delete_account(db: AsyncSession, account_id: int):

@@ -3,7 +3,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, oauth2_scheme, require_role
-from app.modules.auth.schemas import AccountCreate, AccountOut, LoginRequest, LoginResponse, UserInfo
+from app.modules.auth.schemas import AccountCreate, AccountOut, EmployeeOut, LoginRequest, LoginResponse, UserInfo
 from app.modules.auth import service
 from app.shared.pg_db import get_pg_db
 from app.shared.redis import get_redis
@@ -37,6 +37,15 @@ async def logout(
 async def me(user: dict = Depends(get_current_user)):
     """当前用户信息"""
     return user
+
+
+@router.get("/employees", response_model=list[EmployeeOut])
+async def list_employees_endpoint(
+    db: AsyncSession = Depends(get_pg_db),
+    _: dict = Depends(get_current_user),
+):
+    """员工列表（下拉选择用，所有角色可访问）"""
+    return await service.list_employees(db)
 
 
 # 账号管理（管理员专属）

@@ -97,7 +97,7 @@ async def cancel_visit_endpoint(
 async def get_customer_history_endpoint(
     customer_id: int,
     db: AsyncSession = Depends(get_pg_db),
-    user: dict = Depends(require_role("医生")),
+    user: dict = Depends(require_role("管理员", "医生")),
 ):
     """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records，批量查询消除 N+1）"""
     visits = await db.execute(
