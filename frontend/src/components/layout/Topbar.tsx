@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
-import { LogOut } from "lucide-react";
+import { LogOut, PawPrint } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -34,13 +34,18 @@ export default function Topbar() {
   const initials = user?.name?.slice(0, 2) ?? "?";
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-6">
-      <span className="text-sm text-muted-foreground">{getBreadcrumb()}</span>
+    <header className="flex h-16 items-center justify-between border-b border-orange-100/80 bg-card/85 px-6 shadow-sm shadow-orange-100/60 backdrop-blur">
+      <div className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-primary">
+          <PawPrint className="h-4 w-4" />
+        </span>
+        <span className="text-sm font-medium text-muted-foreground">{getBreadcrumb()}</span>
+      </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground">
+        <DropdownMenuTrigger className="flex items-center gap-2 rounded-full px-2 py-1 transition-colors hover:bg-accent hover:text-accent-foreground">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs shadow-sm shadow-orange-200">
               {initials}
             </AvatarFallback>
           </Avatar>

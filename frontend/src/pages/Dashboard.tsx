@@ -9,6 +9,7 @@ import {
   Stethoscope,
   CheckCircle2,
   ClipboardCheck,
+  PawPrint,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -28,6 +29,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { PetMascots } from "@/components/common/PetMascots";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -45,9 +47,11 @@ function StatCard({
   loading: boolean;
 }) {
   return (
-    <Card className="p-4">
+    <Card className="warm-card p-4 transition-transform duration-200 hover:-translate-y-0.5">
       <div className="flex items-center gap-4">
-        <Icon className="h-8 w-8 text-primary" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-primary">
+          <Icon className="h-6 w-6" />
+        </div>
         <div>
           {loading ? (
             <Skeleton className="h-8 w-16" />
@@ -58,6 +62,31 @@ function StatCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+function DashboardHero({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 p-6 text-white shadow-lg shadow-orange-200">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(255,255,255,0.28),transparent_20rem)]" />
+      <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/18 px-3 py-1 text-sm font-medium backdrop-blur">
+            <PawPrint className="h-4 w-4" />
+            今日工作台
+          </div>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="mt-2 max-w-xl text-sm text-white/85">{description}</p>
+        </div>
+        <PetMascots className="hidden shrink-0 md:block" />
+      </div>
+    </section>
   );
 }
 
@@ -99,10 +128,7 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">管理仪表盘</h1>
-        <p className="text-sm text-muted-foreground">医院运营数据概览</p>
-      </div>
+      <DashboardHero title="管理仪表盘" description="医院运营数据概览，快速关注接诊、住院、营收和库存状态。" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -132,7 +158,7 @@ function AdminDashboard() {
       </div>
 
       {/* 待处理列表 */}
-      <Card>
+      <Card className="warm-card">
         <div className="flex items-center justify-between px-4 pt-4">
           <h2 className="text-lg font-semibold">待处理列表</h2>
           <Badge variant="secondary">待接诊 {pendingVisits.length}</Badge>
@@ -207,10 +233,7 @@ function DoctorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">医生工作台</h1>
-        <p className="text-sm text-muted-foreground">今日诊疗概览</p>
-      </div>
+      <DashboardHero title="医生工作台" description="今日诊疗概览，优先处理候诊宠物和进行中的接诊记录。" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
@@ -234,7 +257,7 @@ function DoctorDashboard() {
       </div>
 
       {/* 候诊队列 */}
-      <Card>
+      <Card className="warm-card">
         <div className="flex items-center justify-between px-4 pt-4">
           <h2 className="text-lg font-semibold">候诊队列</h2>
           <Badge variant="secondary">等待中 {queueVisits.length}</Badge>
@@ -294,10 +317,7 @@ function NurseDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">护理工作台</h1>
-        <p className="text-sm text-muted-foreground">住院护理概览</p>
-      </div>
+      <DashboardHero title="护理工作台" description="住院护理概览，集中查看在院宠物和当天护理任务。" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
@@ -315,7 +335,7 @@ function NurseDashboard() {
       </div>
 
       {/* 护理任务列表 */}
-      <Card>
+      <Card className="warm-card">
         <div className="flex items-center justify-between px-4 pt-4">
           <h2 className="text-lg font-semibold">护理任务列表</h2>
           <Badge variant="secondary">住院中 {activeCount}</Badge>
