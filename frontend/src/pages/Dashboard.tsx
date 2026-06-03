@@ -47,9 +47,9 @@ function StatCard({
   loading: boolean;
 }) {
   return (
-    <Card className="warm-card p-4 transition-transform duration-200 hover:-translate-y-0.5">
+    <Card className="warm-card p-4 transition-colors duration-200 hover:bg-white">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-primary">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-primary ring-1 ring-orange-100">
           <Icon className="h-6 w-6" />
         </div>
         <div>
@@ -73,18 +73,22 @@ function DashboardHero({
   description: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 p-6 text-white shadow-lg shadow-orange-200">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(255,255,255,0.28),transparent_20rem)]" />
+    <section className="warm-card relative overflow-hidden rounded-2xl p-6">
+      <div className="absolute inset-y-0 left-0 w-1.5 bg-primary" />
+      <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-orange-100/70" />
+      <div className="absolute right-12 bottom-8 text-orange-200/70">
+        <PawPrint className="h-16 w-16 rotate-12 stroke-[1.4]" />
+      </div>
       <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/18 px-3 py-1 text-sm font-medium backdrop-blur">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-primary ring-1 ring-orange-100">
             <PawPrint className="h-4 w-4" />
             今日工作台
           </div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="mt-2 max-w-xl text-sm text-white/85">{description}</p>
+          <h1 className="text-2xl font-bold text-orange-950">{title}</h1>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">{description}</p>
         </div>
-        <PetMascots className="hidden shrink-0 md:block" />
+        <PetMascots className="hidden shrink-0 scale-75 md:block" />
       </div>
     </section>
   );

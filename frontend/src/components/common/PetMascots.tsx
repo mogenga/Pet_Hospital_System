@@ -4,35 +4,40 @@ import { cn } from "@/lib/utils";
 
 export function PetMascots({ className }: { className?: string }) {
   return (
-    <div className={cn("pointer-events-none relative h-32 w-44", className)}>
+    <div className={cn("pointer-events-none relative h-36 w-56", className)}>
+      <div className="absolute inset-x-8 bottom-2 h-5 rounded-full bg-orange-900/10 blur-xl" />
       <motion.div
-        className="absolute left-2 top-8 rounded-2xl bg-white/85 p-3 text-primary shadow-lg shadow-orange-200/60 ring-1 ring-orange-100"
-        animate={{ y: [0, -8, 0], rotate: [-2, 2, -2] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-4 top-7 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white/90 text-primary shadow-xl shadow-orange-200/35 ring-1 ring-orange-100/90"
+        animate={{ y: [0, -6, 0], rotate: [-1.5, 1.5, -1.5] }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Cat className="h-10 w-10" />
+        <Cat className="h-12 w-12 stroke-[1.7]" />
       </motion.div>
       <motion.div
-        className="absolute right-2 top-2 rounded-2xl bg-amber-100 p-3 text-amber-700 shadow-lg shadow-orange-200/60 ring-1 ring-amber-200"
-        animate={{ y: [0, 7, 0], rotate: [2, -2, 2] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute right-4 top-2 flex h-28 w-28 items-center justify-center rounded-[2rem] bg-orange-100/90 text-orange-700 shadow-xl shadow-orange-200/40 ring-1 ring-orange-200/80"
+        animate={{ y: [0, 6, 0], rotate: [1.5, -1.5, 1.5] }}
+        transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Dog className="h-11 w-11" />
+        <Dog className="h-14 w-14 stroke-[1.7]" />
       </motion.div>
       <motion.div
-        className="absolute bottom-4 left-20 rounded-full bg-rose-100 p-2 text-rose-500 shadow-sm"
-        animate={{ scale: [1, 1.12, 1] }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-4 left-24 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-rose-500 shadow-md shadow-orange-200/30 ring-1 ring-orange-100"
+        animate={{ scale: [1, 1.08, 1], opacity: [0.86, 1, 0.86] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       >
-        <HeartPulse className="h-5 w-5" />
+        <HeartPulse className="h-5 w-5 stroke-[1.8]" />
       </motion.div>
-      <motion.div
-        className="absolute bottom-0 right-12 rounded-full bg-white/80 p-2 text-orange-400 shadow-sm"
-        animate={{ opacity: [0.55, 1, 0.55], y: [0, -4, 0] }}
-        transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <PawPrint className="h-4 w-4" />
-      </motion.div>
+      {[0, 1, 2].map((item) => (
+        <motion.div
+          key={item}
+          className="absolute text-orange-300/60"
+          style={{ left: `${40 + item * 18}px`, bottom: `${12 + item * 12}px` }}
+          animate={{ opacity: [0.22, 0.58, 0.22], y: [0, -3, 0] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: item * 0.35 }}
+        >
+          <PawPrint className="h-4 w-4 rotate-12 stroke-[1.8]" />
+        </motion.div>
+      ))}
     </div>
   );
 }
@@ -40,23 +45,23 @@ export function PetMascots({ className }: { className?: string }) {
 export function FloatingPaws() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {[0, 1, 2, 3, 4].map((item) => (
+      {[0, 1, 2, 3].map((item) => (
         <motion.div
           key={item}
-          className="absolute text-orange-300/25"
+          className="absolute text-orange-300/14"
           style={{
-            left: `${12 + item * 18}%`,
-            top: `${18 + (item % 3) * 22}%`,
+            right: `${8 + item * 17}%`,
+            top: `${20 + (item % 2) * 34}%`,
           }}
-          animate={{ y: [0, -14, 0], rotate: [0, 12, 0], opacity: [0.18, 0.4, 0.18] }}
+          animate={{ y: [0, -10, 0], rotate: [0, 8, 0], opacity: [0.08, 0.2, 0.08] }}
           transition={{
-            duration: 5 + item * 0.6,
+            duration: 8 + item * 0.8,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: item * 0.35,
+            delay: item * 0.5,
           }}
         >
-          <PawPrint className="h-8 w-8" />
+          <PawPrint className="h-10 w-10 stroke-[1.4]" />
         </motion.div>
       ))}
     </div>
