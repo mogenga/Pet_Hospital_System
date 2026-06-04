@@ -32,7 +32,9 @@ export const useAuthStore = create<AuthState>()(
           // 显式传 token — set(null) 后拦截器取不到，后端需要 Bearer 头
           apiClient.post("/api/auth/logout", null, {
             headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => {});
+          }).catch((err) => {
+            console.warn("登出 API 调用失败:", err?.message ?? err);
+          });
         }
       },
 

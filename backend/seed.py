@@ -29,17 +29,18 @@ async def main():
         for name, role, phone, username, password in SEED_DATA:
             # 检查员工是否已存在（按角色+手机号判断）
             r = await conn.execute(
-                text("SELECT employee_id FROM employee WHERE role = :role AND phone = :phone"),
+                text("SELECT employee_id, name FROM employee WHERE role = :role AND phone = :phone"),
                 {"role": role, "phone": phone},
             )
             row = r.fetchone()
             if row:
                 emp_id = row.employee_id
-                # 如果已存在则更新姓名（兼容旧 seed.sql 的英文名）
-                await conn.execute(
-                    text("UPDATE employee SET name = :name WHERE employee_id = :eid"),
-                    {"name": name, "eid": emp_id},
-                )
+                # 一次性修复：仅覆盖英文/拼音名，已设置中文名的不再改动
+                if not any('一' <= c <= '鿿' for c in (row.name or '')):
+                    await conn.execute(
+                        text("UPDATE employee SET name = :name WHERE employee_id = :eid"),
+                        {"name": name, "eid": emp_id},
+                    )
             else:
                 r = await conn.execute(
                     text("INSERT INTO employee (name, role, phone) VALUES (:name, :role, :phone) RETURNING employee_id"),
