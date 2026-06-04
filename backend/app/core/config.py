@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     # 应用
     APP_ENV: str = "development"
     APP_PORT: int = 8000
+    SQL_ECHO: bool = True  # 是否在日志中输出 SQL 语句
 
     # PostgreSQL
     PG_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pet_hospital"

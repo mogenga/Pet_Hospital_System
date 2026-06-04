@@ -1,6 +1,7 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { LogOut, PawPrint } from "lucide-react";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -20,8 +21,15 @@ const breadcrumbMap: Record<string, string> = {
 
 export default function Topbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+
+  const handleLogout = () => {
+    logout();
+    toast.success("已退出登录");
+    navigate("/login", { replace: true });
+  };
 
   const getBreadcrumb = () => {
     const path = location.pathname;
@@ -57,7 +65,7 @@ export default function Topbar() {
             <div className="text-xs text-muted-foreground">{user?.role}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={logout} className="text-destructive">
+          <DropdownMenuItem onClick={handleLogout} className="text-destructive">
             <LogOut className="mr-2 h-4 w-4" />
             退出登录
           </DropdownMenuItem>

@@ -29,7 +29,10 @@ export const useAuthStore = create<AuthState>()(
         const token = get().token;
         set({ token: null, user: null });
         if (token) {
-          apiClient.post("/api/auth/logout").catch(() => {});
+          // 显式传 token — set(null) 后拦截器取不到，后端需要 Bearer 头
+          apiClient.post("/api/auth/logout", null, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
         }
       },
 
