@@ -17,12 +17,12 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "仪表盘", path: "/dashboard", icon: LayoutDashboard, roles: ["管理员", "医生", "护士"] },
-  { title: "客户管理", path: "/customers", icon: Users, roles: ["管理员", "医生"] },
+  { title: "客户管理", path: "/customers", icon: Users, roles: ["管理员", "医生", "护士"] },
   { title: "就诊管理", path: "/consultation", icon: Stethoscope, roles: ["管理员", "医生"] },
-  { title: "药品库存", path: "/pharmacy", icon: Pill, roles: ["管理员", "医生"] },
+  { title: "药品库存", path: "/pharmacy", icon: Pill, roles: ["管理员", "医生", "护士"] },
   { title: "收费管理", path: "/billing", icon: Receipt, roles: ["管理员", "医生"] },
   { title: "住院管理", path: "/hospitalization", icon: Building2, roles: ["管理员", "医生", "护士"] },
-  { title: "寄养管理", path: "/boarding", icon: Dog, roles: ["管理员", "医生"] },
+  { title: "寄养管理", path: "/boarding", icon: Dog, roles: ["管理员", "医生", "护士"] },
   { title: "账号管理", path: "/accounts", icon: UserCog, roles: ["管理员"] },
 ];
 

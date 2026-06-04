@@ -10,9 +10,9 @@ from app.core.security import hash_password
 
 SEED_DATA = [
     # (name, role, phone, username, password)
-    ("张管理", "管理员", "13800000001", "admin",   "admin123"),
-    ("李医生", "医生",   "13800000002", "doctor1", "test123456"),
-    ("王护士", "护士",   "13800000003", "nurse1",  "test123456"),
+    ("张冠利", "管理员", "13800000001", "admin",   "admin123"),
+    ("李四", "医生",   "13800000002", "doctor1", "test123456"),
+    ("王王", "护士",   "13800000003", "nurse1",  "test123456"),
 ]
 
 
@@ -35,6 +35,11 @@ async def main():
             row = r.fetchone()
             if row:
                 emp_id = row.employee_id
+                # 如果已存在则更新姓名（兼容旧 seed.sql 的英文名）
+                await conn.execute(
+                    text("UPDATE employee SET name = :name WHERE employee_id = :eid"),
+                    {"name": name, "eid": emp_id},
+                )
             else:
                 r = await conn.execute(
                     text("INSERT INTO employee (name, role, phone) VALUES (:name, :role, :phone) RETURNING employee_id"),
