@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+/* Geist Variable — 本地覆盖 font-display: optional（原 npm 导入为 swap 会导致 CJK 截断） */
+@import "@/fonts/geist-variable.css";
 
 @custom-variant dark (&:is(.dark *));
 
