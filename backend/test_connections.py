@@ -1,5 +1,5 @@
 """
-测试 PostgreSQL / Redis / MongoDB / MinIO 连接情况
+测试 PostgreSQL / Redis / MinIO 连接情况
 用法: python test_connections.py
 """
 
@@ -13,7 +13,6 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 from app.core.config import settings
 from app.shared.pg_db import engine
 from app.shared.redis import redis_client
-from app.shared.mongo_db import mongo_client
 from app.shared.minio import minio_client
 
 
@@ -41,16 +40,6 @@ async def test_redis():
         return False
 
 
-async def test_mongo():
-    try:
-        await mongo_client.admin.command("ping")
-        print("  [OK] MongoDB - ping success")
-        return True
-    except Exception as e:
-        print(f"  [FAIL] MongoDB - {e}")
-        return False
-
-
 def test_minio():
     try:
         buckets = minio_client.list_buckets()
@@ -74,16 +63,13 @@ async def main():
     def safe_url(url):
         return url.split("@")[1] if "@" in url else url
 
-    print("\n[1/4] PostgreSQL:", safe_url(settings.PG_URL))
+    print("\n[1/3] PostgreSQL:", safe_url(settings.PG_URL))
     results["pg"] = await test_pg()
 
-    print("\n[2/4] Redis:", safe_url(settings.REDIS_URL))
+    print("\n[2/3] Redis:", safe_url(settings.REDIS_URL))
     results["redis"] = await test_redis()
 
-    print("\n[3/4] MongoDB:", settings.MONGO_URL)
-    results["mongo"] = await test_mongo()
-
-    print("\n[4/4] MinIO:", settings.MINIO_ENDPOINT)
+    print("\n[3/3] MinIO:", settings.MINIO_ENDPOINT)
     results["minio"] = test_minio()
 
     print("\n" + "=" * 55)
@@ -96,7 +82,6 @@ async def main():
 
     await engine.dispose()
     await redis_client.aclose()
-    mongo_client.close()
 
 
 if __name__ == "__main__":

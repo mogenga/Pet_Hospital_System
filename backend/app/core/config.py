@@ -12,9 +12,6 @@ class Settings(BaseSettings):
     # PostgreSQL
     PG_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/pet_hospital"
 
-    # MongoDB
-    MONGO_URL: str = "mongodb://localhost:27017/pet_hospital"
-
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 

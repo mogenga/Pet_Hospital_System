@@ -1,6 +1,3 @@
-from datetime import datetime, timezone
-
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -175,12 +172,11 @@ async def complete_visit(db: AsyncSession, visit_id: int) -> VisitOut:
 
 
 # ═══════════════════════════════════════════
-# Diagnosis（双写 PG + MongoDB）
+# Diagnosis
 # ═══════════════════════════════════════════
 
 async def create_diagnosis(
     db: AsyncSession,
-    mongo_db: AsyncIOMotorDatabase,
     visit_id: int,
     data: DiagnosisCreate,
     user: dict,
@@ -212,24 +208,6 @@ async def create_diagnosis(
     diag_row = diag_result.fetchone()
 
     await db.flush()
-
-    # MongoDB 双写（best-effort，不作为主数据源）
-    mongo_doc = {
-        "diagnosis_id": diag_row.diagnosis_id,
-        "visit_id": visit_id,
-        "pet_id": row.pet_id,
-        "customer_id": row.customer_id,
-        "pet_name": row.pet_name,
-        "diagnosis_result": data.diagnosis_result,
-        "notes": data.notes,
-        "created_by": user["name"],
-        "created_by_id": user["employee_id"],
-        "created_at": datetime.now(timezone.utc),
-    }
-    try:
-        await mongo_db.medical_records.insert_one(mongo_doc)
-    except Exception:
-        pass  # MongoDB 为辅助存储，写入失败不影响业务流程
 
     return DiagnosisOut(
         diagnosis_id=diag_row.diagnosis_id,

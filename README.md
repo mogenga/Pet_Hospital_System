@@ -11,7 +11,6 @@
 | UI 组件 | shadcn/ui + Tailwind CSS v4 |
 | 状态管理 | Zustand + TanStack React Query |
 | 关系数据库 | PostgreSQL (15 表, 3NF) |
-| 文档数据库 | MongoDB (诊断记录 / 护理记录) |
 | 缓存 | Redis (Cache-Aside, TTL) |
 | 对象存储 | MinIO (S3 兼容) |
 | 任务队列 | Celery (Redis broker, PDF 导出) |
@@ -37,7 +36,6 @@
 - Node.js 18+
 - PostgreSQL 15+
 - Redis 7+
-- MongoDB 6+
 - MinIO (Docker)
 
 ### 1. 克隆项目
@@ -116,7 +114,7 @@ Pet_Hospital_System/
 │   │   │       ├── service.py   # 业务逻辑
 │   │   │       ├── schemas.py   # Pydantic 模型
 │   │   │       └── models.py    # SQLAlchemy 模型
-│   │   ├── shared/              # 跨模块共享 (MinIO, MongoDB, billing)
+│   │   ├── shared/              # 跨模块共享 (MinIO, billing)
 │   │   └── tasks/               # Celery 任务
 │   ├── sql/
 │   │   └── init_db.sql          # DDL（数据权威源）

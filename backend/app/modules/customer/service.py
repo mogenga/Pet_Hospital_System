@@ -1,6 +1,5 @@
 import json
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -251,9 +250,9 @@ async def delete_pet(db: AsyncSession, customer_id: int, pet_id: int) -> None:
 
 
 async def get_customer_history(
-    db: AsyncSession, mongo_db: AsyncIOMotorDatabase, customer_id: int
+    db: AsyncSession, customer_id: int
 ) -> list[dict]:
-    """客户就诊历史聚合（PG visit + diagnosis + MongoDB medical_records，批量查询消除 N+1）"""
+    """客户就诊历史聚合"""
     visits = await db.execute(
         text(
             "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status "
@@ -278,15 +277,6 @@ async def get_customer_history(
     )
     diag_rows = diag_result.fetchall()
 
-    # 批量查询 MongoDB 病历（一次 MongoDB 查询）
-    diag_ids = [d.diagnosis_id for d in diag_rows]
-    mongo_docs = {}
-    if diag_ids:
-        cursor = mongo_db.medical_records.find({"diagnosis_id": {"$in": diag_ids}})
-        async for doc in cursor:
-            doc.pop("_id", None)
-            mongo_docs[doc["diagnosis_id"]] = doc
-
     # 组装结果
     diag_by_visit = {d.visit_id: d for d in diag_rows}
     result = []
@@ -299,7 +289,6 @@ async def get_customer_history(
             "complaint": v.complaint,
             "status": v.status,
             "diagnosis": None,
-            "medical_record": None,
         }
         d = diag_by_visit.get(v.visit_id)
         if d:
@@ -308,7 +297,6 @@ async def get_customer_history(
                 "diagnosis_result": d.diagnosis_result,
                 "notes": d.notes,
             }
-            visit_data["medical_record"] = mongo_docs.get(d.diagnosis_id)
 
         result.append(visit_data)
 

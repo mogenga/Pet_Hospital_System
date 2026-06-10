@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_pg_db, require_role
-from app.shared.mongo_db import mongo_db
 from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate, WardCreate, WardUpdate
 from app.modules.hospitalization.service import (
     add_nursing_record,
@@ -101,8 +100,8 @@ async def add_nursing(
     db: AsyncSession = Depends(get_pg_db),
     _current_user=Depends(get_current_user),
 ):
-    """添加护理记录（护士，PG + MongoDB 双写）"""
-    result = await add_nursing_record(db, mongo_db, hosp_id, data)
+    """添加护理记录（护士）"""
+    result = await add_nursing_record(db, hosp_id, data)
     return JSONResponse(content=result, status_code=201)
 
 

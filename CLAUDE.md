@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 宠物医院诊疗与住院管理系统 — a pet hospital management system covering outpatient consultation, diagnosis & prescription, hospitalization & nursing, pharmacy inventory, pet boarding, and billing.
 
-**Tech stack:** FastAPI + React 19 + TypeScript + PostgreSQL + Redis + MinIO + MongoDB.
+**Tech stack:** FastAPI + React 19 + TypeScript + PostgreSQL + Redis + MinIO.
 Frontend: Vite + shadcn/ui + Tailwind CSS v4 + Zustand + TanStack React Query + React Router v7.
 Backend: FastAPI + SQLAlchemy Async + Celery + python-jose (JWT).
 
@@ -75,7 +75,7 @@ docker compose up -d minio    # 启动 MinIO
 | `backend/sql/init_db.sql` | Executable DDL — the authoritative source of the database schema |
 | `docs/superpowers/plans/2026-05-01-system-implementation-plan.md` | Step-by-step implementation plan with dependency order, file lists, and TDD test scenarios |
 | `docs/superpowers/specs/2026-05-14-frontend-design.md` | 前端设计文档 — 色彩系统、布局、路由、状态管理、页面模式 |
-| `backend/.env.example` | 后端环境变量模板 — PG/MongoDB/Redis/MinIO/JWT 配置项 |
+| `backend/.env.example` | 后端环境变量模板 — PG/Redis/MinIO/JWT 配置项 |
 
 ---
 
@@ -94,7 +94,7 @@ Each business module in `backend/app/modules/<name>/` follows a 4-file conventio
 
 **Modules:** `auth`, `customer`, `consultation`, `pharmacy`, `billing`, `hospitalization`, `boarding`, `minio_upload`.
 
-**Shared layer** (`backend/app/shared/`): `pg_db.py` (async session), `mongo_db.py` (Motor client), `redis.py` (Redis client), `minio.py` (S3-compatible upload), `services/billing_service.py` (single billing entry point).
+**Shared layer** (`backend/app/shared/`): `pg_db.py` (async session), `redis.py` (Redis client), `minio.py` (S3-compatible upload), `services/billing_service.py` (single billing entry point).
 
 **Tests** (`backend/tests/integration/`): One file per module using `pytest-asyncio` (`asyncio_mode = "auto"`). Test fixtures declare `async def` with `@pytest.fixture` markers. Use `httpx.AsyncClient` with FastAPI `TestClient` pattern.
 
@@ -192,7 +192,6 @@ Protected routes use `<ProtectedRoute>` wrapper which checks `useAuthStore.isAut
 | Variable | Purpose |
 |----------|---------|
 | `PG_URL` | PostgreSQL async connection string (`postgresql+asyncpg://...`) |
-| `MONGO_URL` | MongoDB connection string (`mongodb://localhost:27017/pet_hospital`) |
 | `REDIS_URL` | Redis connection string (`redis://...`) |
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO S3-compatible storage |
 | `JWT_SECRET` / `JWT_ALGORITHM` / `JWT_EXPIRE_MINUTES` | JWT auth configuration |

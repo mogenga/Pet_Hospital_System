@@ -20,7 +20,6 @@ from app.modules.consultation.service import (
     get_visit,
     list_visits,
 )
-from app.shared.mongo_db import mongo_db
 from app.shared.pg_db import get_pg_db
 
 router = APIRouter(tags=["就诊管理"])
@@ -80,7 +79,7 @@ async def create_diagnosis_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     user: dict = Depends(require_role("医生")),
 ):
-    return await create_diagnosis(db, mongo_db, visit_id, data, user)
+    return await create_diagnosis(db, visit_id, data, user)
 
 
 @router.post("/api/consultation/diagnoses/{diagnosis_id}/prescriptions", status_code=201, response_model=list[PrescriptionItemOut])

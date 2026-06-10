@@ -8,7 +8,6 @@ dependencies = [
     "sqlalchemy[asyncio]",
     "asyncpg",
     "alembic",
-    "motor",
     "redis[hiredis]",
     "minio",
     "python-jose[cryptography]",

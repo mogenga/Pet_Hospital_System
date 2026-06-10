@@ -151,7 +151,7 @@ class TestConsultationFlow:
         assert data["status"] == "接诊中"
 
     async def test_create_diagnosis(self, client: AsyncClient, doctor_token: str, test_setup: dict):
-        """诊断：创建诊断 + MongoDB 双写，状态变为待收费"""
+        """诊断：创建诊断，状态保持接诊中"""
         vid = test_setup["visit_id"]
         resp = await client.post(
             f"/api/consultation/visits/{vid}/diagnosis",
@@ -332,52 +332,3 @@ class TestCancelRules:
         )
         assert resp.status_code == 409
         assert "诊断" in resp.json()["detail"]
-
-
-# ═══════════════════════════════════════════
-# TestMongoDBDualWrite — MongoDB 双写
-# ═══════════════════════════════════════════
-
-class TestMongoDBDualWrite:
-    """MongoDB 病历双写"""
-
-    async def test_diagnosis_saves_to_mongo(self, client: AsyncClient, admin_token: str, doctor_token: str, test_setup: dict):
-        """诊断后 MongoDB medical_records 集合有对应文档"""
-        from app.shared.mongo_db import mongo_db
-
-        resp = await client.post(
-            "/api/consultation/visits",
-            json={
-                "pet_id": test_setup["pet_id"],
-                "employee_id": test_setup["admin_emp_id"],
-                "complaint": "精神萎靡",
-            },
-            headers={"Authorization": f"Bearer {admin_token}"},
-        )
-        vid = resp.json()["visit_id"]
-
-        # 接诊
-        await client.put(
-            f"/api/consultation/visits/{vid}/accept",
-            headers={"Authorization": f"Bearer {doctor_token}"},
-        )
-
-        # 诊断
-        resp = await client.post(
-            f"/api/consultation/visits/{vid}/diagnosis",
-            json={
-                "diagnosis_result": "营养不良",
-                "notes": "补充维生素，改善饮食",
-            },
-            headers={"Authorization": f"Bearer {doctor_token}"},
-        )
-        diagnosis_id = resp.json()["diagnosis_id"]
-
-        # 验证 MongoDB 中有对应文档
-        doc = await mongo_db.medical_records.find_one({"diagnosis_id": diagnosis_id})
-        assert doc is not None
-        assert doc["diagnosis_result"] == "营养不良"
-        assert doc["visit_id"] == vid
-
-        # 清理 MongoDB
-        await mongo_db.medical_records.delete_one({"diagnosis_id": diagnosis_id})

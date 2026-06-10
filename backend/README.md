@@ -8,7 +8,6 @@
 |------|------|
 | Web 框架 | FastAPI (Python) + SQLAlchemy Async |
 | 关系数据库 | PostgreSQL 15+ (15 表, 3NF) |
-| 文档数据库 | MongoDB 6+ (诊断记录 / 护理记录) |
 | 缓存 | Redis 7+ (Cache-Aside, TTL) |
 | 对象存储 | MinIO (S3 兼容, Docker) |
 | 任务队列 | Celery (Redis broker, PDF 导出) |
@@ -19,7 +18,6 @@
 - Python 3.10+（Conda 环境 `PHS`）
 - PostgreSQL 15+
 - Redis 7+
-- MongoDB 6+
 - MinIO（Docker）
 
 ## 快速开始
@@ -110,7 +108,6 @@ backend/
 │   │       └── models.py        # SQLAlchemy ORM 模型
 │   ├── shared/                  # 跨模块共享基础设施
 │   │   ├── pg_db.py             # PostgreSQL 异步引擎 + 会话工厂
-│   │   ├── mongo_db.py          # MongoDB 客户端
 │   │   ├── redis.py             # Redis 客户端
 │   │   └── services/
 │   │       └── billing_service.py  # 统一账单收费入口
@@ -132,11 +129,11 @@ backend/
 | 模块 | 路由前缀 | 核心功能 |
 |------|---------|---------|
 | auth | `/api` | JWT 登录/登出/黑名单, 账号 CRUD（管理员） |
-| customer | `/api/customers` | 客户 CRUD, 宠物 CRUD, 就诊历史聚合（PG + MongoDB） |
+| customer | `/api/customers` | 客户 CRUD, 宠物 CRUD, 就诊历史聚合 |
 | pharmacy | `/api/pharmacy` | 药品 CRUD, 批次入库, 库存预警, 行级锁扣减 |
 | consultation | `/api/consultation` | 就诊登记→接诊→诊断→开方→取消, 状态流转 |
 | billing | `/api/billing` | 账单自动生成, 收费项幂等, 结账, PDF 导出 |
-| hospitalization | `/api/hospitalization` | 转入住院, 护理记录（PG + MongoDB 双写）, 出院 |
+| hospitalization | `/api/hospitalization` | 转入住院, 护理记录, 出院 |
 | boarding | `/api/boarding` | 寄养登记, 结束寄养, 按天计费 |
 | minio_upload | `/api/minio` | MinIO presigned PUT URL 直传 |
 
@@ -218,7 +215,6 @@ pytest -v
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `PG_URL` | PostgreSQL 连接串 (asyncpg) | — |
-| `MONGO_URL` | MongoDB 连接串 | — |
 | `REDIS_URL` | Redis 连接串 | — |
 | `MINIO_ENDPOINT` | MinIO 服务地址 | `localhost:9000` |
 | `MINIO_ACCESS_KEY` | MinIO 访问密钥 | `minioadmin` |

@@ -3,7 +3,6 @@ from datetime import date
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.exceptions import AppError, Conflict, NotFound
 from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate, WardCreate, WardUpdate
@@ -188,9 +187,9 @@ async def get_hospitalization_detail(db: AsyncSession, hosp_id: int) -> dict:
 
 
 async def add_nursing_record(
-    db: AsyncSession, mongo_db: AsyncIOMotorDatabase, hosp_id: int, data: NursingCreate
+    db: AsyncSession, hosp_id: int, data: NursingCreate
 ) -> dict:
-    """添加护理记录，PG + MongoDB 双写"""
+    """添加护理记录"""
     # 验证住院记录存在且状态为住院中
     hosp = await db.execute(
         text("SELECT hosp_id, status FROM hospitalization WHERE hosp_id = :id"),
@@ -220,19 +219,6 @@ async def add_nursing_record(
         "record_time": row.record_time,
         "content": row.content,
     }
-
-    # MongoDB 双写（best-effort，辅助存储）
-    doc = {
-        "record_id": row.record_id,
-        "hosp_id": hosp_id,
-        "employee_id": data.employee_id,
-        "record_time": row.record_time,
-        "content": data.content,
-    }
-    try:
-        await mongo_db.nursing_logs.insert_one(doc)
-    except Exception:
-        pass  # MongoDB 为辅助存储，写入失败不影响业务流程
 
     await db.flush()
     return record

@@ -8,9 +8,9 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 宠物医院诊疗与住院管理系统 — a pet hospital management system covering outpatient consultation, diagnosis & prescription, hospitalization & nursing, pharmacy inventory, pet boarding, and billing.
 
-**Tech stack:** FastAPI + React + PostgreSQL + Redis + MinIO + MongoDB (see `docs/superpowers/specs/2026-05-01-system-architecture-design.md` for full architecture).
+**Tech stack:** FastAPI + React + PostgreSQL + Redis + MinIO (see `docs/superpowers/specs/2026-05-01-system-architecture-design.md` for full architecture).
 
-**Current state:** 后端 10/10 阶段全部完成，前端 9 全部完成。系统功能完整（auth / pharmacy / customer / consultation / billing / hospitalization / boarding / Celery PDF 导出 / Redis 缓存 / MinIO 文件上传）。PostgreSQL schema（`backend/sql/init_db.sql`）为数据权威源。已完成代码审查修复：事务原子性、N+1查询消除、MongoDB索引移至启动、连接生命周期管理等。
+**Current state:** 后端 10/10 阶段全部完成，前端 9 全部完成。系统功能完整（auth / pharmacy / customer / consultation / billing / hospitalization / boarding / Celery PDF 导出 / Redis 缓存 / MinIO 文件上传）。PostgreSQL schema（`backend/sql/init_db.sql`）为数据权威源。MongoDB 已移除，所有数据统一存储在 PostgreSQL。
 
 ---
 
@@ -68,7 +68,7 @@ scaffold → infra → auth → pharmacy → customer → consultation → billi
 ## Environment Notes
 
 - `.env` 不入库，`.env.example` 作为模板入库
-- MinIO 用 Docker（`docker compose up -d minio`），PG / Redis / MongoDB 用本地服务
+- MinIO 用 Docker（`docker compose up -d minio`），PG / Redis 用本地服务
 - 前端 `localhost:5173`，后端 `localhost:8000`
 - Conda 虚拟环境：`PHS`（所有 Python 依赖安装在该环境内）
 

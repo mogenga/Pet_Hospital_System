@@ -219,7 +219,7 @@ class TestNursingRecord:
     """护理记录"""
 
     async def test_add_nursing_record(self, client: AsyncClient, admin_token: str, test_setup: dict, db: AsyncSession):
-        """添加护理记录 → PG + MongoDB 双写"""
+        """添加护理记录"""
         # 获取 hosp_id
         r = await db.execute(
             text("SELECT hosp_id FROM hospitalization WHERE visit_id = :vid"),
@@ -254,12 +254,6 @@ class TestNursingRecord:
         pg_row = r.fetchone()
         assert pg_row is not None
         assert "体温" in pg_row.content
-
-        # 验证 MongoDB 双写
-        from app.shared.mongo_db import mongo_db
-        mongo_doc = await mongo_db.nursing_logs.find_one({"record_id": data["record_id"]})
-        assert mongo_doc is not None
-        assert mongo_doc["hosp_id"] == hosp_id
 
     async def test_list_nursing_records(self, client: AsyncClient, admin_token: str, test_setup: dict, db: AsyncSession):
         """住院详情包含护理记录列表"""
