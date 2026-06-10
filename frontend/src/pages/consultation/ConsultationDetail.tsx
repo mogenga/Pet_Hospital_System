@@ -593,7 +593,14 @@ export default function ConsultationDetail() {
                                   }
                                 >
                                   <SelectTrigger size="sm" className="w-full">
-                                    <SelectValue placeholder="选择药品批次" />
+                                    <SelectValue placeholder="选择药品批次">
+                                      {(() => {
+                                        const b = availableBatches.find(
+                                          (ab) => String(ab.batch_id) === row.batchId
+                                        );
+                                        return b ? `${b.medicine_name} (#${b.batch_id})` : undefined;
+                                      })()}
+                                    </SelectValue>
                                   </SelectTrigger>
                                   <SelectContent>
                                     {availableBatches.map((b) => (
