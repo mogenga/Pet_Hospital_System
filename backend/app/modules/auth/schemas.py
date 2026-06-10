@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
-    username: str
+    username: str = Field(description="用户名或手机号")
     password: str
 
 

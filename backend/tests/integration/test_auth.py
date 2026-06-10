@@ -44,6 +44,18 @@ class TestLogin:
         })
         assert resp.status_code == 401
 
+    async def test_login_with_phone(self, client: AsyncClient, db: AsyncSession):
+        """支持手机号+密码登录"""
+        await _setup_doctor(db, "doctor_phone", "13900001111")
+
+        resp = await client.post("/api/auth/login", json={
+            "username": "13900001111", "password": "test123456",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data
+        assert data["user"]["username"] == "doctor_phone"
+
     async def test_login_disabled_account(self, client: AsyncClient, db: AsyncSession):
         await _setup_doctor(db, "doctor3", "13800000003", is_active=False)
 

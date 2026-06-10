@@ -112,13 +112,13 @@ export default function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* 用户名 */}
+              {/* 用户名/手机号 */}
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60">
                   <User className="h-4 w-4" />
                 </span>
                 <Input
-                  placeholder="请输入用户名"
+                  placeholder="请输入用户名或手机号"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required

@@ -43,19 +43,20 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
     # 先检查是否已被限流
     await check_login_rate_limit(redis, ip)
 
+    # 支持用户名或手机号登录：同时匹配 account.username 和 employee.phone
     result = await db.execute(
         text(
             "SELECT a.account_id, a.username, a.password_hash, a.is_active, "
             "e.name, e.role, e.employee_id "
             "FROM account a JOIN employee e ON a.employee_id = e.employee_id "
-            "WHERE a.username = :username"
+            "WHERE a.username = :credential OR e.phone = :credential"
         ),
-        {"username": username},
+        {"credential": username},
     )
     row = result.fetchone()
     if row is None:
         await record_login_failure(redis, ip)
-        raise Unauthorized(detail="用户名或密码错误")
+        raise Unauthorized(detail="用户名/手机号或密码错误")
 
     if not row.is_active:
         await record_login_failure(redis, ip)
@@ -63,7 +64,7 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
 
     if not verify_password(password, row.password_hash):
         await record_login_failure(redis, ip)
-        raise Unauthorized(detail="用户名或密码错误")
+        raise Unauthorized(detail="用户名/手机号或密码错误")
 
     # 签发 JWT
     token = create_access_token(data={"sub": str(row.account_id), "role": row.role})
