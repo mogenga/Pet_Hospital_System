@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,6 +74,6 @@ async def bill_download_url(
         from app.core.exceptions import NotFound
         raise NotFound(detail="账单 PDF 尚未生成，请先结账")
     url = minio_client.presigned_get_object(
-        settings.MINIO_BUCKET, file_key, expires=604800
+        settings.MINIO_BUCKET, file_key, expires=timedelta(days=7)
     )
     return {"url": url, "file_key": file_key}
