@@ -404,7 +404,7 @@ export default function CustomerDetail() {
                 }
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col items-center gap-1.5">
               <Label>宠物头像</Label>
               <ImageUpload
                 fileKey={
@@ -417,7 +417,7 @@ export default function CustomerDetail() {
                   setPetForm((prev) => ({ ...prev, photo_key: key }))
                 }
                 allowed={canUpload}
-                size="md"
+                size="lg"
               />
             </div>
           </div>
