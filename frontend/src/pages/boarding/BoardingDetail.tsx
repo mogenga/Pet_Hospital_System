@@ -75,12 +75,17 @@ export default function BoardingDetail() {
 
   const isOngoing = !boarding.end_date;
 
-  // 计算当前天数
-  const startDate = new Date(boarding.start_date);
-  const endDate = boarding.end_date ? new Date(boarding.end_date) : new Date();
+  // 计算当前天数（仅用日期部分，与后端 date 减法一致）
+  const startDate = new Date(boarding.start_date + "T00:00:00");
+  const endRaw = boarding.end_date
+    ? new Date(boarding.end_date + "T00:00:00")
+    : new Date();
+  const endDate = boarding.end_date
+    ? endRaw
+    : new Date(endRaw.getFullYear(), endRaw.getMonth(), endRaw.getDate());
   const daysElapsed = Math.max(
     1,
-    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
   );
 
   return (
