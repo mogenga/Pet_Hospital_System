@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import {
   LayoutDashboard, Users, Stethoscope, Pill, Receipt,
-  Building2, Dog, UserCog, ChevronLeft, ChevronRight,
+  Building2, Dog, Home, UserCog, ChevronLeft, ChevronRight,
   Cat, PawPrint,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
