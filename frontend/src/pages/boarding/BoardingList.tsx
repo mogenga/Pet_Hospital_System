@@ -189,7 +189,7 @@ function AddBoardingDialog({
             />
           </div>
           <div className="flex flex-col items-center gap-1.5">
-            <Label>宠物头像（选填）</Label>
+            <Label>宠物照片（选填）</Label>
             <ImageUpload
               fileKey={`boarding/${Date.now()}/checkin.jpg`}
               currentKey={photoKey}

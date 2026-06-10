@@ -405,7 +405,7 @@ export default function CustomerDetail() {
               />
             </div>
             <div className="flex flex-col items-center gap-1.5">
-              <Label>宠物头像</Label>
+              <Label>宠物照片</Label>
               <ImageUpload
                 fileKey={
                   petDialog.mode === "edit"
@@ -479,13 +479,13 @@ function AvatarPreviewDialog({
     <Dialog open={!!photoKey} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-xl" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>宠物头像</DialogTitle>
+          <DialogTitle>宠物照片</DialogTitle>
         </DialogHeader>
         <div className="flex items-center justify-center rounded-lg bg-muted/30 p-4">
           {data?.url ? (
             <img
               src={data.url}
-              alt="宠物头像"
+              alt="宠物照片"
               className="max-h-96 max-w-full rounded-lg object-contain"
             />
           ) : (
