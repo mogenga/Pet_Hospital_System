@@ -47,7 +47,7 @@ app = FastAPI(title="宠物医院诊疗与住院管理系统", version="0.1.0", 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
