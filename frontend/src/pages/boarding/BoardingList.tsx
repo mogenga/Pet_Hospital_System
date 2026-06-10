@@ -188,14 +188,14 @@ function AddBoardingDialog({
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>宠物照片</Label>
+          <div className="flex flex-col items-center gap-1.5">
+            <Label>宠物头像（选填）</Label>
             <ImageUpload
               fileKey={`boarding/${Date.now()}/checkin.jpg`}
               currentKey={photoKey}
               onSuccess={(key) => setPhotoKey(key)}
               allowed={true}
-              size="md"
+              size="lg"
             />
           </div>
         </div>
