@@ -171,6 +171,11 @@ function AddBatchDialog({
   const { data: medicines, isLoading: medsLoading } = useMedicines();
   const createBatch = useCreateBatch();
   const [medicineId, setMedicineId] = useState("");
+
+  // 计算选中药品的名称（避免 SelectValue 回退显示数字 ID）
+  const selectedMedicineName = (medicines || []).find(
+    (m) => String(m.medicine_id) === medicineId
+  )?.name;
   const [inDate, setInDate] = useState("");
   const [expireDate, setExpireDate] = useState("");
   const [stockQty, setStockQty] = useState("");
@@ -213,7 +218,9 @@ function AddBatchDialog({
             <Label>药品</Label>
             <Select value={medicineId} onValueChange={(v) => setMedicineId(v ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="请选择药品" />
+                <SelectValue placeholder="请选择药品">
+                  {selectedMedicineName}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {medsLoading ? (
