@@ -248,66 +248,66 @@ async def add_prescription(
     diagnosis_id: int,
     items: list[PrescriptionItemCreate],
 ) -> list[PrescriptionItemOut]:
-    async with db.begin():
-        # 验证诊断存在并获取 visit 状态
-        result = await db.execute(
+    # 验证诊断存在并获取 visit 状态
+    result = await db.execute(
+        text(
+            "SELECT d.diagnosis_id, d.visit_id, v.status "
+            "FROM diagnosis d JOIN visit v ON d.visit_id = v.visit_id "
+            "WHERE d.diagnosis_id = :id"
+        ),
+        {"id": diagnosis_id},
+    )
+    row = result.fetchone()
+    if row is None:
+        raise NotFound(detail="诊断记录不存在")
+    if row.status not in ("接诊中", "待收费"):
+        raise Conflict(detail=f"当前状态'{row.status}'不可开具处方")
+
+    # 批量查询所有批次的 medicine_id（消除 N+1）
+    batch_ids = [item.batch_id for item in items]
+    batch_result = await db.execute(
+        text("SELECT batch_id, medicine_id FROM medicine_batch WHERE batch_id = ANY(:bids)"),
+        {"bids": batch_ids},
+    )
+    batch_map = {row.batch_id: row.medicine_id for row in batch_result.fetchall()}
+
+    # 验证所有批次存在
+    for item in items:
+        if item.batch_id not in batch_map:
+            raise NotFound(detail=f"批次{item.batch_id}不存在")
+
+    created = []
+    for item in items:
+        medicine_id = batch_map[item.batch_id]
+        # 调 pharmacy 扣库存
+        await deduct_stock(db, medicine_id, item.quantity)
+
+        # 插入处方明细
+        rx_result = await db.execute(
             text(
-                "SELECT d.diagnosis_id, d.visit_id, v.status "
-                "FROM diagnosis d JOIN visit v ON d.visit_id = v.visit_id "
-                "WHERE d.diagnosis_id = :id"
+                "INSERT INTO prescription_item (diagnosis_id, batch_id, quantity, dosage) "
+                "VALUES (:did, :bid, :qty, :dosage) "
+                "RETURNING item_id, diagnosis_id, batch_id, quantity, dosage"
             ),
-            {"id": diagnosis_id},
+            {
+                "did": diagnosis_id,
+                "bid": item.batch_id,
+                "qty": item.quantity,
+                "dosage": item.dosage,
+            },
         )
-        row = result.fetchone()
-        if row is None:
-            raise NotFound(detail="诊断记录不存在")
-        if row.status not in ("接诊中", "待收费"):
-            raise Conflict(detail=f"当前状态'{row.status}'不可开具处方")
-
-        # 批量查询所有批次的 medicine_id（消除 N+1）
-        batch_ids = [item.batch_id for item in items]
-        batch_result = await db.execute(
-            text("SELECT batch_id, medicine_id FROM medicine_batch WHERE batch_id = ANY(:bids)"),
-            {"bids": batch_ids},
+        rx_row = rx_result.fetchone()
+        created.append(
+            PrescriptionItemOut(
+                item_id=rx_row.item_id,
+                diagnosis_id=rx_row.diagnosis_id,
+                batch_id=rx_row.batch_id,
+                quantity=rx_row.quantity,
+                dosage=rx_row.dosage,
+            )
         )
-        batch_map = {row.batch_id: row.medicine_id for row in batch_result.fetchall()}
 
-        # 验证所有批次存在
-        for item in items:
-            if item.batch_id not in batch_map:
-                raise NotFound(detail=f"批次{item.batch_id}不存在")
-
-        created = []
-        for item in items:
-            medicine_id = batch_map[item.batch_id]
-            # 调 pharmacy 扣库存（在同一个事务内）
-            await deduct_stock(db, medicine_id, item.quantity)
-
-            # 插入处方明细
-            rx_result = await db.execute(
-                text(
-                    "INSERT INTO prescription_item (diagnosis_id, batch_id, quantity, dosage) "
-                    "VALUES (:did, :bid, :qty, :dosage) "
-                    "RETURNING item_id, diagnosis_id, batch_id, quantity, dosage"
-                ),
-                {
-                    "did": diagnosis_id,
-                    "bid": item.batch_id,
-                    "qty": item.quantity,
-                    "dosage": item.dosage,
-                },
-            )
-            rx_row = rx_result.fetchone()
-            created.append(
-                PrescriptionItemOut(
-                    item_id=rx_row.item_id,
-                    diagnosis_id=rx_row.diagnosis_id,
-                    batch_id=rx_row.batch_id,
-                    quantity=rx_row.quantity,
-                    dosage=rx_row.dosage,
-                )
-            )
-
+    await db.flush()
     return created
 
 
