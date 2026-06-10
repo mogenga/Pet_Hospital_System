@@ -22,6 +22,7 @@ const menuItems: MenuItem[] = [
   { title: "药品库存", path: "/pharmacy", icon: Pill, roles: ["管理员", "医生", "护士"] },
   { title: "收费管理", path: "/billing", icon: Receipt, roles: ["管理员", "医生", "护士"] },
   { title: "住院管理", path: "/hospitalization", icon: Building2, roles: ["管理员", "医生", "护士"] },
+  { title: "笼位管理", path: "/wards", icon: Home, roles: ["管理员"] },
   { title: "寄养管理", path: "/boarding", icon: Dog, roles: ["管理员", "医生", "护士"] },
   { title: "账号管理", path: "/accounts", icon: UserCog, roles: ["管理员"] },
 ];

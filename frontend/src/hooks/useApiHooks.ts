@@ -7,7 +7,7 @@ import type {
   VisitOut, VisitDetail, VisitCreate, DiagnosisCreate, PrescriptionCreate,
   CustomerVisitHistory,
   BillOut, BillDetail, BillItemCreate,
-  WardOut, HospListOut, HospDetail, AdmitCreate, NursingCreate,
+  WardOut, WardCreate, WardUpdate, HospListOut, HospDetail, AdmitCreate, NursingCreate,
   BoardingListOut, BoardingDetail, BoardingCreate, EndBoardingResponse,
   AccountOut, AccountCreate, EmployeeOut,
 } from "@/types";
@@ -236,6 +236,33 @@ export function useWards() {
     queryKey: ["wards"],
     queryFn: () => apiClient.get("/api/wards").then((r) => r.data),
     staleTime: 300000,
+  });
+}
+
+export function useCreateWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: WardCreate) =>
+      apiClient.post("/api/wards", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wards"] }),
+  });
+}
+
+export function useUpdateWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: WardUpdate }) =>
+      apiClient.put(`/api/wards/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wards"] }),
+  });
+}
+
+export function useDeleteWard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiClient.delete(`/api/wards/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wards"] }),
   });
 }
 

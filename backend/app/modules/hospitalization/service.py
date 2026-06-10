@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.exceptions import AppError, Conflict, NotFound
-from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate
+from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate, WardCreate, WardUpdate
 from app.shared.redis import redis_client
 from app.shared.services.billing_service import add_item as billing_add_item
 
@@ -293,3 +293,96 @@ async def discharge(db: AsyncSession, hosp_id: int, discharge_date: date | None 
         "status": "已出院",
         "discharge_date": str(discharge_date),
     }
+
+
+# ─── 笼位 CRUD ──────────────────────────────────────────────
+
+
+async def create_ward(db: AsyncSession, data: WardCreate) -> dict:
+    """新增笼位"""
+    existing = await db.execute(
+        text("SELECT 1 FROM ward WHERE ward_no = :wno"),
+        {"wno": data.ward_no},
+    )
+    if existing.fetchone():
+        raise Conflict(detail=f"笼位编号 '{data.ward_no}' 已存在")
+
+    result = await db.execute(
+        text(
+            "INSERT INTO ward (ward_no, type, status, daily_rate) "
+            "VALUES (:wno, :type, '空闲', :rate) "
+            "RETURNING ward_id, ward_no, type, status, daily_rate"
+        ),
+        {"wno": data.ward_no, "type": data.type, "rate": str(data.daily_rate)},
+    )
+    row = result.fetchone()
+    await _invalidate_cache()
+    return {
+        "ward_id": row.ward_id,
+        "ward_no": row.ward_no,
+        "type": row.type,
+        "status": row.status,
+        "daily_rate": str(row.daily_rate),
+    }
+
+
+async def update_ward(db: AsyncSession, ward_id: int, data: WardUpdate) -> dict:
+    """编辑笼位（不允许修改 status，由系统流转）"""
+    # 获取当前值
+    current = await db.execute(
+        text("SELECT ward_no, type, daily_rate FROM ward WHERE ward_id = :id"),
+        {"id": ward_id},
+    )
+    row = current.fetchone()
+    if row is None:
+        raise NotFound(detail="笼位不存在")
+
+    new_no = data.ward_no if data.ward_no is not None else row.ward_no
+    new_type = data.type if data.type is not None else row.type
+    new_rate = str(data.daily_rate) if data.daily_rate is not None else str(row.daily_rate)
+
+    # ward_no 唯一性校验
+    if new_no != row.ward_no:
+        dup = await db.execute(
+            text("SELECT 1 FROM ward WHERE ward_no = :wno AND ward_id != :id"),
+            {"wno": new_no, "id": ward_id},
+        )
+        if dup.fetchone():
+            raise Conflict(detail=f"笼位编号 '{new_no}' 已存在")
+
+    result = await db.execute(
+        text(
+            "UPDATE ward SET ward_no = :wno, type = :type, daily_rate = :rate "
+            "WHERE ward_id = :id "
+            "RETURNING ward_id, ward_no, type, status, daily_rate"
+        ),
+        {"wno": new_no, "type": new_type, "rate": new_rate, "id": ward_id},
+    )
+    await _invalidate_cache()
+    updated = result.fetchone()
+    return {
+        "ward_id": updated.ward_id,
+        "ward_no": updated.ward_no,
+        "type": updated.type,
+        "status": updated.status,
+        "daily_rate": str(updated.daily_rate),
+    }
+
+
+async def delete_ward(db: AsyncSession, ward_id: int) -> None:
+    """删除笼位（仅空闲笼位可删除）"""
+    current = await db.execute(
+        text("SELECT ward_id, status FROM ward WHERE ward_id = :id FOR UPDATE"),
+        {"id": ward_id},
+    )
+    row = current.fetchone()
+    if row is None:
+        raise NotFound(detail="笼位不存在")
+    if row.status != "空闲":
+        raise Conflict(detail="笼位使用中，无法删除")
+
+    await db.execute(
+        text("DELETE FROM ward WHERE ward_id = :id"),
+        {"id": ward_id},
+    )
+    await _invalidate_cache()

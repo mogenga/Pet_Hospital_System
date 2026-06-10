@@ -231,6 +231,18 @@ export interface WardOut {
   daily_rate: string;
 }
 
+export interface WardCreate {
+  ward_no: string;
+  type: string;
+  daily_rate: number;
+}
+
+export interface WardUpdate {
+  ward_no?: string | null;
+  type?: string | null;
+  daily_rate?: number | null;
+}
+
 export interface HospListOut {
   hosp_id: number;
   visit_id: number;

@@ -15,6 +15,7 @@ import HospDetail from "@/pages/hospitalization/HospDetail";
 import BoardingList from "@/pages/boarding/BoardingList";
 import BoardingDetail from "@/pages/boarding/BoardingDetail";
 import AccountList from "@/pages/accounts/AccountList";
+import WardList from "@/pages/wards/WardList";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
@@ -39,6 +40,14 @@ export const router = createBrowserRouter([
       { path: "hospitalization/:id", element: <HospDetail /> },
       { path: "boarding", element: <BoardingList /> },
       { path: "boarding/:id", element: <BoardingDetail /> },
+      {
+        path: "wards",
+        element: (
+          <ProtectedRoute allowedRoles={["管理员"]}>
+            <WardList />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "accounts",
         element: (

@@ -31,6 +31,18 @@ class WardOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class WardCreate(BaseModel):
+    ward_no: str = Field(min_length=1, max_length=20)
+    type: str = Field(min_length=1, max_length=20)
+    daily_rate: Decimal = Field(gt=0)
+
+
+class WardUpdate(BaseModel):
+    ward_no: str | None = Field(default=None, min_length=1, max_length=20)
+    type: str | None = Field(default=None, min_length=1, max_length=20)
+    daily_rate: Decimal | None = Field(default=None, gt=0)
+
+
 class NursingCreate(BaseModel):
     employee_id: int
     content: str = Field(min_length=1)

@@ -15,6 +15,17 @@ SEED_DATA = [
     ("王王", "护士",   "13800000003", "nurse1",  "test123456"),
 ]
 
+# 初始笼位数据：(ward_no, type, daily_rate)
+# type 仅两种：病房 / 寄养笼
+SEED_WARDS = [
+    ("A01", "病房",   120.00),
+    ("A02", "病房",   120.00),
+    ("B01", "病房",   120.00),
+    ("C01", "寄养笼",  60.00),
+    ("C02", "寄养笼",  60.00),
+    ("C03", "寄养笼",  60.00),
+]
+
 
 async def main():
     engine = create_async_engine(settings.PG_URL)
@@ -55,6 +66,19 @@ async def main():
                 {"eid": emp_id, "u": username, "pwd": pwd_hash},
             )
             print(f"  {role}: {username} / {password}  [OK]")
+
+        # ── 笼位种子数据 ──
+        print("\n[ward]")
+        for ward_no, wtype, rate in SEED_WARDS:
+            await conn.execute(
+                text(
+                    "INSERT INTO ward (ward_no, type, status, daily_rate) "
+                    "VALUES (:wno, :type, '空闲', :rate) "
+                    "ON CONFLICT (ward_no) DO NOTHING"
+                ),
+                {"wno": ward_no, "type": wtype, "rate": rate},
+            )
+            print(f"  {ward_no} ({wtype}) ¥{rate}/天  [OK]")
 
     await engine.dispose()
     print("\nSeed data created successfully!")

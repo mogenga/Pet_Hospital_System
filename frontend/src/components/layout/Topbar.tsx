@@ -16,6 +16,7 @@ const breadcrumbMap: Record<string, string> = {
   "/billing": "收费管理",
   "/hospitalization": "住院管理",
   "/boarding": "寄养管理",
+  "/wards": "笼位管理",
   "/accounts": "账号管理",
 };
 

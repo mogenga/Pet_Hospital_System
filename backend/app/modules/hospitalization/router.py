@@ -6,14 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_pg_db, require_role
 from app.shared.mongo_db import mongo_db
-from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate
+from app.modules.hospitalization.schemas import AdmitCreate, NursingCreate, WardCreate, WardUpdate
 from app.modules.hospitalization.service import (
     add_nursing_record,
     admit,
+    create_ward,
+    delete_ward,
     discharge,
     get_hospitalization_detail,
     list_hospitalizations,
     list_wards,
+    update_ward,
 )
 
 router = APIRouter(tags=["住院管理"])
@@ -26,6 +29,38 @@ async def ward_list(
 ):
     """笼位列表（全部角色）"""
     return await list_wards(db)
+
+
+@router.post("/api/wards", status_code=201)
+async def create_ward_endpoint(
+    data: WardCreate,
+    db: AsyncSession = Depends(get_pg_db),
+    _current_user=Depends(require_role("管理员")),
+):
+    """新增笼位（仅管理员）"""
+    return await create_ward(db, data)
+
+
+@router.put("/api/wards/{ward_id}")
+async def update_ward_endpoint(
+    ward_id: int,
+    data: WardUpdate,
+    db: AsyncSession = Depends(get_pg_db),
+    _current_user=Depends(require_role("管理员")),
+):
+    """编辑笼位（仅管理员）"""
+    return await update_ward(db, ward_id, data)
+
+
+@router.delete("/api/wards/{ward_id}")
+async def delete_ward_endpoint(
+    ward_id: int,
+    db: AsyncSession = Depends(get_pg_db),
+    _current_user=Depends(require_role("管理员")),
+):
+    """删除笼位（仅管理员，仅空闲笼位可删）"""
+    await delete_ward(db, ward_id)
+    return {"message": "已删除"}
 
 
 @router.post("/api/hospitalization")
