@@ -14,6 +14,7 @@ from app.modules.consultation.service import (
     accept_visit,
     add_prescription,
     cancel_visit,
+    complete_visit,
     create_diagnosis,
     create_visit,
     get_visit,
@@ -60,6 +61,16 @@ async def accept_visit_endpoint(
     user: dict = Depends(require_role("医生")),
 ):
     return await accept_visit(db, visit_id)
+
+
+@router.put("/api/consultation/visits/{visit_id}/complete", response_model=VisitOut)
+async def complete_visit_endpoint(
+    visit_id: int,
+    db: AsyncSession = Depends(get_pg_db),
+    user: dict = Depends(require_role("医生")),
+):
+    """完成诊疗（接诊中 → 待收费）"""
+    return await complete_visit(db, visit_id)
 
 
 @router.post("/api/consultation/visits/{visit_id}/diagnosis", status_code=201, response_model=DiagnosisOut)

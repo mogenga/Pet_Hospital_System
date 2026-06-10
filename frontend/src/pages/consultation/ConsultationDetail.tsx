@@ -12,6 +12,7 @@ import {
   Pill,
   Receipt,
   Ban,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import {
@@ -20,6 +21,7 @@ import {
   useCreateDiagnosis,
   useCreatePrescription,
   useCancelVisit,
+  useCompleteVisit,
   useAddBillItem,
   useBatches,
   useMedicines,
@@ -167,6 +169,7 @@ export default function ConsultationDetail() {
   const createDiagnosis = useCreateDiagnosis();
   const createPrescription = useCreatePrescription();
   const cancelVisit = useCancelVisit();
+  const completeVisit = useCompleteVisit();
   const addBillItem = useAddBillItem();
 
   // 诊断表单
@@ -643,7 +646,7 @@ export default function ConsultationDetail() {
                       )}
 
                       {prescriptionRows.length > 0 && (
-                        <div>
+                        <div className="flex items-center gap-3">
                           <Button
                             onClick={handleSubmitPrescription}
                             disabled={createPrescription.isPending}
@@ -654,6 +657,35 @@ export default function ConsultationDetail() {
                             提交处方
                           </Button>
                         </div>
+                      )}
+
+                      {/* 完成诊疗 */}
+                      {diagnosis && hasPrescriptions && (
+                        <>
+                          <Separator />
+                          <div className="flex flex-col gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              诊疗完成
+                            </span>
+                            <div>
+                              <Button
+                                variant="default"
+                                onClick={() => {
+                                  completeVisit.mutate(visitId, {
+                                    onSuccess: () => toast.success("诊疗完成，已进入收费阶段"),
+                                  });
+                                }}
+                                disabled={completeVisit.isPending}
+                              >
+                                {completeVisit.isPending && (
+                                  <Loader2 className="animate-spin" />
+                                )}
+                                <CheckCircle2 className="size-4" />
+                                完成诊疗
+                              </Button>
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
 

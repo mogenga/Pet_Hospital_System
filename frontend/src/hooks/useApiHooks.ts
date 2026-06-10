@@ -193,6 +193,15 @@ export function useCancelVisit() {
   });
 }
 
+export function useCompleteVisit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitId: number) =>
+      apiClient.put(`/api/consultation/visits/${visitId}/complete`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["visits"] }),
+  });
+}
+
 // ==================== 账单 ====================
 export function useBills() {
   return useQuery<BillOut[]>({

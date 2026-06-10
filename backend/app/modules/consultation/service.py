@@ -148,6 +148,32 @@ async def accept_visit(db: AsyncSession, visit_id: int) -> VisitOut:
     )
 
 
+async def complete_visit(db: AsyncSession, visit_id: int) -> VisitOut:
+    """完成诊疗，状态 接诊中 → 待收费"""
+    result = await db.execute(
+        text("SELECT visit_id, pet_id, employee_id, visit_time, complaint, status FROM visit WHERE visit_id = :id"),
+        {"id": visit_id},
+    )
+    row = result.fetchone()
+    if row is None:
+        raise NotFound(detail="就诊记录不存在")
+    if row.status != "接诊中":
+        raise Conflict(detail=f"当前状态'{row.status}'不可完成诊疗，只有'接诊中'状态可以操作")
+
+    await db.execute(
+        text("UPDATE visit SET status = '待收费' WHERE visit_id = :id"),
+        {"id": visit_id},
+    )
+    return VisitOut(
+        visit_id=row.visit_id,
+        pet_id=row.pet_id,
+        employee_id=row.employee_id,
+        visit_time=row.visit_time,
+        complaint=row.complaint,
+        status="待收费",
+    )
+
+
 # ═══════════════════════════════════════════
 # Diagnosis（双写 PG + MongoDB）
 # ═══════════════════════════════════════════
@@ -184,12 +210,6 @@ async def create_diagnosis(
         {"vid": visit_id, "result": data.diagnosis_result, "notes": data.notes},
     )
     diag_row = diag_result.fetchone()
-
-    # 更新 visit 状态为待收费
-    await db.execute(
-        text("UPDATE visit SET status = '待收费' WHERE visit_id = :id"),
-        {"id": visit_id},
-    )
 
     await db.flush()
 
