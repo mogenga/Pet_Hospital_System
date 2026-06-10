@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Receipt, DollarSign, FileText, Loader2, Download } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import apiClient from "@/api/client";
 import { useBillDetail, useSettleBill } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
 import {
@@ -180,12 +181,10 @@ export default function BillingDetail() {
                 variant="outline"
                 onClick={async () => {
                   try {
-                    const res = await fetch(
-                      `http://localhost:8000/api/billing/bills/${bill.bill_id}/download`,
-                      { headers: { Authorization: `Bearer ${useAuthStore.getState().token}` } }
+                    const res = await apiClient.get(
+                      `/api/billing/bills/${bill.bill_id}/download`
                     );
-                    const data = await res.json();
-                    window.open(data.url, "_blank");
+                    window.open(res.data.url, "_blank");
                   } catch {
                     toast.error("下载失败");
                   }
