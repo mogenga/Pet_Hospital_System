@@ -21,12 +21,18 @@ from app.modules.pharmacy.service import deduct_stock
 # ═══════════════════════════════════════════
 
 async def list_visits(db: AsyncSession, status: str | None = None) -> list[VisitOut]:
-    query = "SELECT visit_id, pet_id, employee_id, visit_time, complaint, status FROM visit"
+    query = (
+        "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status, "
+        "p.name AS pet_name, c.name AS customer_name "
+        "FROM visit v "
+        "JOIN pet p ON v.pet_id = p.pet_id "
+        "JOIN customer c ON p.customer_id = c.customer_id "
+    )
     params = {}
     if status:
-        query += " WHERE status = :status"
+        query += " WHERE v.status = :status"
         params["status"] = status
-    query += " ORDER BY visit_id DESC"
+    query += " ORDER BY v.visit_id DESC"
     result = await db.execute(text(query), params)
     return [VisitOut.model_validate(row._mapping) for row in result.fetchall()]
 

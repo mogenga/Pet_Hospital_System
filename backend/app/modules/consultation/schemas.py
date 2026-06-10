@@ -18,6 +18,8 @@ class VisitOut(BaseModel):
     visit_time: datetime
     complaint: str | None
     status: str
+    pet_name: str | None = None
+    customer_name: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -124,6 +124,8 @@ export interface VisitOut {
   visit_time: string;
   complaint: string | null;
   status: VisitStatus;
+  pet_name: string | null;
+  customer_name: string | null;
 }
 
 export interface VisitCreate {
@@ -252,6 +254,8 @@ export interface HospListOut {
   admit_date: string;
   discharge_date: string | null;
   status: HospStatus;
+  pet_name: string | null;
+  customer_name: string | null;
 }
 
 export interface HospDetail {

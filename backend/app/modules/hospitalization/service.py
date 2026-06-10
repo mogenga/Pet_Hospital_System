@@ -103,9 +103,13 @@ async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
 async def list_hospitalizations(db: AsyncSession, status: str | None = None) -> list[dict]:
     query = """
         SELECT h.hosp_id, h.visit_id, h.ward_id, h.admit_date, h.discharge_date, h.status,
-               w.ward_no, w.type AS ward_type
+               w.ward_no, w.type AS ward_type,
+               p.name AS pet_name, c.name AS customer_name
         FROM hospitalization h
         JOIN ward w ON h.ward_id = w.ward_id
+        JOIN visit v ON h.visit_id = v.visit_id
+        JOIN pet p ON v.pet_id = p.pet_id
+        JOIN customer c ON p.customer_id = c.customer_id
     """
     params = {}
     if status:
@@ -124,6 +128,8 @@ async def list_hospitalizations(db: AsyncSession, status: str | None = None) -> 
             "admit_date": str(row.admit_date),
             "discharge_date": str(row.discharge_date) if row.discharge_date else None,
             "status": row.status,
+            "pet_name": row.pet_name,
+            "customer_name": row.customer_name,
         }
         for row in result.fetchall()
     ]

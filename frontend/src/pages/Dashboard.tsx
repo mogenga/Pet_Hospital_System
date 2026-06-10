@@ -179,7 +179,8 @@ function AdminDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>就诊编号</TableHead>
-                  <TableHead>宠物ID</TableHead>
+                  <TableHead>宠物</TableHead>
+                  <TableHead>主人</TableHead>
                   <TableHead>主诉</TableHead>
                   <TableHead>挂号时间</TableHead>
                 </TableRow>
@@ -188,7 +189,8 @@ function AdminDashboard() {
                 {pendingVisits.map((v) => (
                   <TableRow key={v.visit_id}>
                     <TableCell className="font-mono">#{v.visit_id}</TableCell>
-                    <TableCell>{v.pet_id}</TableCell>
+                    <TableCell className="font-medium">{v.pet_name ?? "-"}</TableCell>
+                    <TableCell>{v.customer_name ?? "-"}</TableCell>
                     <TableCell className="max-w-48 truncate">
                       {v.complaint ?? "-"}
                     </TableCell>
@@ -278,7 +280,8 @@ function DoctorDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>就诊编号</TableHead>
-                  <TableHead>宠物ID</TableHead>
+                  <TableHead>宠物</TableHead>
+                  <TableHead>主人</TableHead>
                   <TableHead>主诉</TableHead>
                   <TableHead>挂号时间</TableHead>
                   <TableHead>操作</TableHead>
@@ -288,7 +291,8 @@ function DoctorDashboard() {
                 {queueVisits.map((v) => (
                   <TableRow key={v.visit_id}>
                     <TableCell className="font-mono">#{v.visit_id}</TableCell>
-                    <TableCell>{v.pet_id}</TableCell>
+                    <TableCell className="font-medium">{v.pet_name ?? "-"}</TableCell>
+                    <TableCell>{v.customer_name ?? "-"}</TableCell>
                     <TableCell className="max-w-48 truncate">
                       {v.complaint ?? "-"}
                     </TableCell>
@@ -356,7 +360,8 @@ function NurseDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>住院编号</TableHead>
-                  <TableHead>就诊编号</TableHead>
+                  <TableHead>宠物</TableHead>
+                  <TableHead>主人</TableHead>
                   <TableHead>病房号</TableHead>
                   <TableHead>入院日期</TableHead>
                 </TableRow>
@@ -365,7 +370,8 @@ function NurseDashboard() {
                 {hosps!.map((h) => (
                   <TableRow key={h.hosp_id}>
                     <TableCell className="font-mono">#{h.hosp_id}</TableCell>
-                    <TableCell>{h.visit_id}</TableCell>
+                    <TableCell className="font-medium">{h.pet_name ?? "-"}</TableCell>
+                    <TableCell>{h.customer_name ?? "-"}</TableCell>
                     <TableCell>{h.ward_no}</TableCell>
                     <TableCell>{h.admit_date.slice(0, 10)}</TableCell>
                   </TableRow>
