@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
   Card,
   CardHeader,
   CardTitle,
@@ -44,6 +51,17 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ---- 新增药品表单 ----
+// 药品分类（固定选项）
+const MEDICINE_CATEGORIES = [
+  "抗生素",
+  "消炎药",
+  "疫苗",
+  "驱虫药",
+  "外用药",
+  "营养补充",
+  "其他",
+];
+
 function AddMedicineDialog({
   open,
   onOpenChange,
@@ -120,12 +138,16 @@ function AddMedicineDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="med-category">分类</Label>
-            <Input
-              id="med-category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="如：抗生素、疫苗"
-            />
+            <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="请选择分类" />
+              </SelectTrigger>
+              <SelectContent>
+                {MEDICINE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

@@ -1,13 +1,18 @@
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+
+# 药品分类（固定选项）
+MedicineCategory = Literal["抗生素", "消炎药", "疫苗", "驱虫药", "外用药", "营养补充", "其他"]
 
 
 class MedicineCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     unit: str = Field(min_length=1, max_length=20)
     unit_price: float = Field(ge=0)
-    category: str = Field(min_length=1, max_length=50)
+    category: MedicineCategory
 
 
 class MedicineOut(BaseModel):
