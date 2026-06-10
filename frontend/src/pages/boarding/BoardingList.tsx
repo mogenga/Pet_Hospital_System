@@ -52,6 +52,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ImageUpload from "@/components/common/ImageUpload";
 
 function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
   return (
@@ -82,6 +83,7 @@ function AddBoardingDialog({
   const [petId, setPetId] = useState("");
   const [wardId, setWardId] = useState("");
   const [startDate, setStartDate] = useState("");
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
 
   // 展平所有客户的宠物为下拉选项
   const allPets = (customers || []).flatMap((c) =>
@@ -101,11 +103,13 @@ function AddBoardingDialog({
         pet_id: parseInt(petId),
         ward_id: parseInt(wardId),
         start_date: startDate,
+        photo_key: photoKey,
       });
       toast.success("寄养登记成功");
       setPetId("");
       setWardId("");
       setStartDate("");
+      setPhotoKey(null);
       onOpenChange(false);
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'response' in e) {
@@ -172,6 +176,16 @@ function AddBoardingDialog({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>宠物照片</Label>
+            <ImageUpload
+              fileKey={`boarding/${Date.now()}/checkin.jpg`}
+              currentKey={photoKey}
+              onSuccess={(key) => setPhotoKey(key)}
+              allowed={true}
+              size="md"
             />
           </div>
         </div>

@@ -20,3 +20,5 @@ frontend/dist/
 
 # 工作树隔离目录
 .worktrees/
+
+/data

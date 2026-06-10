@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import ImageUpload from "@/components/common/ImageUpload";
 
 export default function BoardingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -129,6 +130,19 @@ export default function BoardingDetail() {
               }
             />
           </div>
+
+          {/* 登记照 */}
+          {boarding.photo_key && (
+            <div className="mt-4 flex flex-col gap-2">
+              <span className="text-xs text-muted-foreground">登记照片</span>
+              <ImageUpload
+                fileKey={boarding.photo_key}
+                currentKey={boarding.photo_key}
+                onSuccess={() => {}}
+                size="lg"
+              />
+            </div>
+          )}
 
           {/* 费用信息 */}
           <div className="mt-6 rounded-lg border bg-muted/30 p-4">

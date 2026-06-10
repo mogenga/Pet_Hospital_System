@@ -72,6 +72,20 @@ export default function ConsultationList() {
   const selectedCustomer = customers?.find(
     (c) => c.customer_id === Number(selectedCustomerId)
   );
+  const selectedPet = selectedCustomer?.pets.find(
+    (p) => p.pet_id === Number(selectedPetId)
+  );
+  const selectedDoctor = doctors.find(
+    (d) => d.employee_id === Number(selectedDoctorId)
+  );
+  // 计算显示标签，避免 Select 组件直接显示原始 ID
+  const customerLabel = selectedCustomer
+    ? `${selectedCustomer.name} (${selectedCustomer.phone})`
+    : "";
+  const petLabel = selectedPet
+    ? `${selectedPet.name} (${selectedPet.species}${selectedPet.breed ? ` - ${selectedPet.breed}` : ""})`
+    : "";
+  const doctorLabel = selectedDoctor ? selectedDoctor.name : "";
 
   const resetForm = () => {
     setSelectedCustomerId("");
@@ -223,7 +237,9 @@ export default function ConsultationList() {
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="请选择客户" />
+                  <SelectValue placeholder="请选择客户">
+                    {customerLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(customers || []).map((c) => (
@@ -251,7 +267,9 @@ export default function ConsultationList() {
                     placeholder={
                       selectedCustomerId ? "请选择宠物" : "请先选择客户"
                     }
-                  />
+                  >
+                    {petLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {(selectedCustomer?.pets || []).map((p) => (
@@ -272,7 +290,9 @@ export default function ConsultationList() {
                 onValueChange={(v) => setSelectedDoctorId(v ?? "")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="请选择医生" />
+                  <SelectValue placeholder="请选择医生">
+                    {doctorLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((d) => (

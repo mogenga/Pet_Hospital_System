@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, X } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import {
   useCustomer,
@@ -9,6 +9,7 @@ import {
   useCreatePet,
   useUpdatePet,
   useDeletePet,
+  useMinioDownloadUrl,
 } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/common/StatusBadge";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ImageUpload from "@/components/common/ImageUpload";
 import type { PetOut, PetCreate } from "@/types";
 
 export default function CustomerDetail() {
@@ -39,6 +41,10 @@ export default function CustomerDetail() {
   const customerId = Number(id);
   const navigate = useNavigate();
   const isAdmin = useAuthStore((s) => s.user?.role === "管理员");
+  const canUpload = useAuthStore((s) => {
+    const role = s.user?.role;
+    return role === "管理员" || role === "医生";
+  });
 
   const { data: customer, isLoading, isError } = useCustomer(
     Number.isNaN(customerId) ? undefined : customerId
@@ -62,12 +68,14 @@ export default function CustomerDetail() {
     species: "",
     breed: "",
     birth_date: "",
+    photo_key: null as string | null,
   });
 
   const [deletePetTarget, setDeletePetTarget] = useState<PetOut | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
 
   const openCreatePet = () => {
-    setPetForm({ name: "", species: "", breed: "", birth_date: "" });
+    setPetForm({ name: "", species: "", breed: "", birth_date: "", photo_key: null });
     setPetDialog({ open: true, mode: "create" });
   };
 
@@ -77,6 +85,7 @@ export default function CustomerDetail() {
       species: pet.species,
       breed: pet.breed || "",
       birth_date: pet.birth_date ? pet.birth_date.slice(0, 10) : "",
+      photo_key: pet.photo_key,
     });
     setPetDialog({ open: true, mode: "edit", pet });
   };
@@ -91,6 +100,7 @@ export default function CustomerDetail() {
         species: petForm.species.trim(),
         breed: petForm.breed.trim() || null,
         birth_date: petForm.birth_date || null,
+        photo_key: petForm.photo_key,
       };
       createPetMutation.mutate(
         { customerId, data },
@@ -111,6 +121,7 @@ export default function CustomerDetail() {
             species: petForm.species.trim(),
             breed: petForm.breed.trim() || null,
             birth_date: petForm.birth_date || null,
+            photo_key: petForm.photo_key,
           },
         },
         {
@@ -224,6 +235,7 @@ export default function CustomerDetail() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>头像</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>物种</TableHead>
                   <TableHead>品种</TableHead>
@@ -234,6 +246,19 @@ export default function CustomerDetail() {
               <TableBody>
                 {customer.pets.map((pet) => (
                   <TableRow key={pet.pet_id}>
+                    <TableCell>
+                      <div
+                        className={pet.photo_key ? "cursor-pointer" : ""}
+                        onClick={() => pet.photo_key && setPreviewKey(pet.photo_key)}
+                      >
+                        <ImageUpload
+                          fileKey={`pets/${pet.pet_id}/avatar.jpg`}
+                          currentKey={pet.photo_key}
+                          onSuccess={() => {}}
+                          size="sm"
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{pet.name}</TableCell>
                     <TableCell>{pet.species}</TableCell>
                     <TableCell>{pet.breed || "-"}</TableCell>
@@ -379,6 +404,22 @@ export default function CustomerDetail() {
                 }
               />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>宠物头像</Label>
+              <ImageUpload
+                fileKey={
+                  petDialog.mode === "edit"
+                    ? `pets/${petDialog.pet?.pet_id}/avatar.jpg`
+                    : `pets/new_${Date.now()}.jpg`
+                }
+                currentKey={petForm.photo_key}
+                onSuccess={(key) =>
+                  setPetForm((prev) => ({ ...prev, photo_key: key }))
+                }
+                allowed={canUpload}
+                size="md"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closePetDialog}>
@@ -411,6 +452,50 @@ export default function CustomerDetail() {
         onConfirm={handleDeletePet}
         loading={deletePetMutation.isPending}
       />
+
+      {/* 头像大图预览 */}
+      <AvatarPreviewDialog
+        photoKey={previewKey}
+        onClose={() => setPreviewKey(null)}
+      />
     </div>
+  );
+}
+
+// 头像大图预览弹窗
+function AvatarPreviewDialog({
+  photoKey,
+  onClose,
+}: {
+  photoKey: string | null;
+  onClose: () => void;
+}) {
+  const { data } = useMinioDownloadUrl(photoKey);
+
+  return (
+    <Dialog open={!!photoKey} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-xl" showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>宠物头像</DialogTitle>
+        </DialogHeader>
+        <div className="flex items-center justify-center rounded-lg bg-muted/30 p-4">
+          {data?.url ? (
+            <img
+              src={data.url}
+              alt="宠物头像"
+              className="max-h-96 max-w-full rounded-lg object-contain"
+            />
+          ) : (
+            <Skeleton className="h-64 w-64" />
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            <X className="size-4" />
+            关闭
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

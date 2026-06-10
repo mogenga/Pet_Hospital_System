@@ -8,6 +8,7 @@ class BoardingCreate(BaseModel):
     pet_id: int
     ward_id: int
     start_date: date
+    photo_key: str | None = None
 
 
 class BoardingOut(BaseModel):
@@ -16,6 +17,7 @@ class BoardingOut(BaseModel):
     ward_id: int
     start_date: str
     end_date: str | None = None
+    photo_key: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -30,5 +32,6 @@ class BoardingDetailOut(BaseModel):
     end_date: str | None = None
     daily_rate: Decimal
     current_fee: Decimal
+    photo_key: str | None = None
 
     model_config = {"from_attributes": True}

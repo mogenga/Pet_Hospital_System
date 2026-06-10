@@ -8,6 +8,7 @@ class PetCreate(BaseModel):
     species: str = Field(min_length=1, max_length=30)
     breed: str | None = None
     birth_date: date | None = None
+    photo_key: str | None = None
 
 
 class PetUpdate(BaseModel):
@@ -15,6 +16,7 @@ class PetUpdate(BaseModel):
     species: str | None = Field(default=None, min_length=1, max_length=30)
     breed: str | None = None
     birth_date: date | None = None
+    photo_key: str | None = None
 
 
 class PetOut(BaseModel):
@@ -24,6 +26,7 @@ class PetOut(BaseModel):
     species: str
     breed: str | None
     birth_date: date | None
+    photo_key: str | None = None
 
     model_config = {"from_attributes": True}
 

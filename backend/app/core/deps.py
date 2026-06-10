@@ -27,10 +27,9 @@ async def get_current_user(
     if account_id is None:
         raise Unauthorized(detail="无效的登录凭证")
 
-    # 查黑名单（按 JTI）
-    jti = payload.get("jti")
-    if jti:
-        blacklisted = await redis.get(f"jwt:blacklist:{jti}")
+    # 查黑名单（按 account_id，登出后该账号所有设备均需重新登录）
+    if account_id:
+        blacklisted = await redis.get(f"jwt:blacklist:{account_id}")
         if blacklisted:
             raise Unauthorized(detail="登录已过期，请重新登录")
 

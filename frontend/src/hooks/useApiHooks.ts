@@ -332,6 +332,23 @@ export function useEndBoarding() {
   });
 }
 
+// ==================== MinIO 文件上传 ====================
+export function useMinioUploadUrl() {
+  return useMutation({
+    mutationFn: ({ fileKey, contentType }: { fileKey: string; contentType?: string }) =>
+      apiClient.post("/api/minio/upload-url", { file_key: fileKey, content_type: contentType || "image/jpeg" }).then((r) => r.data as { upload_url: string; file_key: string }),
+  });
+}
+
+export function useMinioDownloadUrl(fileKey: string | null | undefined) {
+  return useQuery<{ url: string; file_key: string }>({
+    queryKey: ["minio-download", fileKey],
+    queryFn: () => apiClient.get("/api/minio/download-url", { params: { file_key: fileKey } }).then((r) => r.data),
+    enabled: !!fileKey,
+    staleTime: 300000, // 5 分钟，presigned URL 有效期内不重复请求
+  });
+}
+
 // ==================== 员工 ====================
 export function useEmployees() {
   return useQuery<EmployeeOut[]>({

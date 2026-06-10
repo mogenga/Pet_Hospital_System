@@ -40,7 +40,7 @@ async def list_customers(db: AsyncSession) -> list[CustomerOut]:
     customer_ids = [row.customer_id for row in customer_rows]
     pet_result = await db.execute(
         text(
-            "SELECT pet_id, customer_id, name, species, breed, birth_date "
+            "SELECT pet_id, customer_id, name, species, breed, birth_date, photo_key "
             "FROM pet WHERE customer_id = ANY(:cids) ORDER BY pet_id"
         ),
         {"cids": customer_ids},
@@ -78,7 +78,7 @@ async def get_customer(db: AsyncSession, customer_id: int) -> CustomerOut:
 
     pet_result = await db.execute(
         text(
-            "SELECT pet_id, customer_id, name, species, breed, birth_date "
+            "SELECT pet_id, customer_id, name, species, breed, birth_date, photo_key "
             "FROM pet WHERE customer_id = :cid ORDER BY pet_id"
         ),
         {"cid": customer_id},
@@ -146,7 +146,7 @@ async def update_customer(db: AsyncSession, customer_id: int, data: CustomerUpda
 
     pet_result = await db.execute(
         text(
-            "SELECT pet_id, customer_id, name, species, breed, birth_date "
+            "SELECT pet_id, customer_id, name, species, breed, birth_date, photo_key "
             "FROM pet WHERE customer_id = :cid ORDER BY pet_id"
         ),
         {"cid": customer_id},
@@ -182,9 +182,9 @@ async def add_pet(db: AsyncSession, customer_id: int, data: PetCreate) -> PetOut
 
     result = await db.execute(
         text(
-            "INSERT INTO pet (customer_id, name, species, breed, birth_date) "
-            "VALUES (:cid, :name, :species, :breed, :bdate) "
-            "RETURNING pet_id, customer_id, name, species, breed, birth_date"
+            "INSERT INTO pet (customer_id, name, species, breed, birth_date, photo_key) "
+            "VALUES (:cid, :name, :species, :breed, :bdate, :pkey) "
+            "RETURNING pet_id, customer_id, name, species, breed, birth_date, photo_key"
         ),
         {
             "cid": customer_id,
@@ -192,6 +192,7 @@ async def add_pet(db: AsyncSession, customer_id: int, data: PetCreate) -> PetOut
             "species": data.species,
             "breed": data.breed,
             "bdate": data.birth_date,
+            "pkey": data.photo_key,
         },
     )
     row = result.fetchone()
@@ -202,7 +203,7 @@ async def add_pet(db: AsyncSession, customer_id: int, data: PetCreate) -> PetOut
 async def update_pet(db: AsyncSession, customer_id: int, pet_id: int, data: PetUpdate) -> PetOut:
     result = await db.execute(
         text(
-            "SELECT pet_id, customer_id, name, species, breed, birth_date "
+            "SELECT pet_id, customer_id, name, species, breed, birth_date, photo_key "
             "FROM pet WHERE pet_id = :pid AND customer_id = :cid"
         ),
         {"pid": pet_id, "cid": customer_id},
@@ -215,13 +216,17 @@ async def update_pet(db: AsyncSession, customer_id: int, pet_id: int, data: PetU
     new_species = data.species if data.species is not None else row.species
     new_breed = data.breed if data.breed is not None else row.breed
     new_bdate = data.birth_date if data.birth_date is not None else row.birth_date
+    new_photo_key = data.photo_key if data.photo_key is not None else row.photo_key
 
     await db.execute(
         text(
-            "UPDATE pet SET name = :name, species = :sp, breed = :breed, birth_date = :bdate "
-            "WHERE pet_id = :pid"
+            "UPDATE pet SET name = :name, species = :sp, breed = :breed, birth_date = :bdate, "
+            "photo_key = :pkey WHERE pet_id = :pid"
         ),
-        {"name": new_name, "sp": new_species, "breed": new_breed, "bdate": new_bdate, "pid": pet_id},
+        {
+            "name": new_name, "sp": new_species, "breed": new_breed, "bdate": new_bdate,
+            "pkey": new_photo_key, "pid": pet_id,
+        },
     )
     await _invalidate_cache()
     return PetOut(
@@ -231,6 +236,7 @@ async def update_pet(db: AsyncSession, customer_id: int, pet_id: int, data: PetU
         species=new_species,
         breed=new_breed,
         birth_date=new_bdate,
+        photo_key=new_photo_key,
     )
 
 

@@ -68,8 +68,8 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
     # 签发 JWT
     token = create_access_token(data={"sub": str(row.account_id), "role": row.role})
 
-    # 登录成功，清除限流计数
-    await redis.delete(f"ratelimit:login:{ip}")
+    # 登录成功，清除限流计数和该账号的黑名单（新登录应覆盖旧的登出状态）
+    await redis.delete(f"ratelimit:login:{ip}", f"jwt:blacklist:{row.account_id}")
 
     # 更新最后登录时间
     await db.execute(
@@ -88,7 +88,7 @@ async def login(db: AsyncSession, redis: Redis, ip: str, username: str, password
 
 
 async def logout(redis: Redis, token: str):
-    """将 JWT 加入黑名单（按 JTI），TTL 为 token 剩余有效时间"""
+    """将账号加入 JWT 黑名单（按 account_id），该账号所有设备同时登出"""
     try:
         payload = decode_access_token(token)
     except Exception:
@@ -96,7 +96,7 @@ async def logout(redis: Redis, token: str):
     exp = payload["exp"]
     now = datetime.now(timezone.utc).timestamp()
     ttl = max(0, int(exp - now))
-    await redis.set(f"jwt:blacklist:{payload['jti']}", "1", ex=ttl)
+    await redis.set(f"jwt:blacklist:{payload['sub']}", "1", ex=ttl)
 
 
 async def create_account(db: AsyncSession, data: AccountCreate) -> AccountOut:

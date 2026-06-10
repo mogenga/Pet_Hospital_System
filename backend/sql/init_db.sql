@@ -47,6 +47,10 @@ COMMENT ON COLUMN pet.species     IS '物种（犬/猫/兔等）';
 COMMENT ON COLUMN pet.breed       IS '品种';
 COMMENT ON COLUMN pet.birth_date  IS '出生日期';
 
+-- 2026-06-09: 新增宠物头像字段（MinIO file_key）
+ALTER TABLE pet ADD COLUMN IF NOT EXISTS photo_key VARCHAR(500);
+COMMENT ON COLUMN pet.photo_key IS 'MinIO 宠物头像 key';
+
 -- ------------------------------------------------------------
 -- 模块二：诊疗与认证（4张表）
 -- ------------------------------------------------------------
@@ -259,6 +263,10 @@ CREATE TABLE boarding (
 COMMENT ON TABLE  boarding            IS '寄养记录';
 COMMENT ON COLUMN boarding.start_date IS '开始日期';
 COMMENT ON COLUMN boarding.end_date   IS '结束日期（NULL = 寄养中）';
+
+-- 2026-06-09: 新增寄养登记照字段（MinIO file_key）
+ALTER TABLE boarding ADD COLUMN IF NOT EXISTS photo_key VARCHAR(500);
+COMMENT ON COLUMN boarding.photo_key IS 'MinIO 寄养登记照 key';
 
 -- ------------------------------------------------------------
 -- 模块六：收费结算（2张表）

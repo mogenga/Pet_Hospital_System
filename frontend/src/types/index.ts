@@ -49,6 +49,7 @@ export interface PetOut {
   species: string;
   breed: string | null;
   birth_date: string | null;
+  photo_key: string | null;
 }
 
 export interface CustomerCreate {
@@ -68,6 +69,7 @@ export interface PetCreate {
   species: string;
   breed?: string | null;
   birth_date?: string | null;
+  photo_key?: string | null;
 }
 
 export interface PetUpdate {
@@ -75,6 +77,7 @@ export interface PetUpdate {
   species?: string | null;
   breed?: string | null;
   birth_date?: string | null;
+  photo_key?: string | null;
 }
 
 // 药品库存
@@ -280,6 +283,7 @@ export interface BoardingListOut {
   ward_no: string;
   start_date: string;
   end_date: string | null;
+  photo_key: string | null;
 }
 
 export interface BoardingDetail {
@@ -292,12 +296,14 @@ export interface BoardingDetail {
   start_date: string;
   end_date: string | null;
   current_fee: string;
+  photo_key: string | null;
 }
 
 export interface BoardingCreate {
   pet_id: number;
   ward_id: number;
   start_date: string;
+  photo_key?: string | null;
 }
 
 // 员工

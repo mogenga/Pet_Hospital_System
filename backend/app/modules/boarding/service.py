@@ -24,11 +24,11 @@ async def create_boarding(db: AsyncSession, data: BoardingCreate) -> dict:
     # 创建寄养记录
     result = await db.execute(
         text(
-            "INSERT INTO boarding (pet_id, ward_id, start_date) "
-            "VALUES (:pid, :wid, :sdate) "
+            "INSERT INTO boarding (pet_id, ward_id, start_date, photo_key) "
+            "VALUES (:pid, :wid, :sdate, :pkey) "
             "RETURNING boarding_id"
         ),
-        {"pid": data.pet_id, "wid": data.ward_id, "sdate": data.start_date},
+        {"pid": data.pet_id, "wid": data.ward_id, "sdate": data.start_date, "pkey": data.photo_key},
     )
     bid = result.scalar_one()
 
@@ -46,6 +46,7 @@ async def create_boarding(db: AsyncSession, data: BoardingCreate) -> dict:
         "ward_id": data.ward_id,
         "start_date": str(data.start_date),
         "end_date": None,
+        "photo_key": data.photo_key,
     }
 
 
@@ -53,7 +54,7 @@ async def list_boardings(db: AsyncSession) -> list[dict]:
     result = await db.execute(
         text(
             "SELECT b.boarding_id, b.pet_id, p.name AS pet_name, "
-            "b.ward_id, w.ward_no, b.start_date, b.end_date "
+            "b.ward_id, w.ward_no, b.start_date, b.end_date, b.photo_key "
             "FROM boarding b "
             "JOIN pet p ON b.pet_id = p.pet_id "
             "JOIN ward w ON b.ward_id = w.ward_id "
@@ -69,6 +70,7 @@ async def list_boardings(db: AsyncSession) -> list[dict]:
             "ward_no": row.ward_no,
             "start_date": str(row.start_date),
             "end_date": str(row.end_date) if row.end_date else None,
+            "photo_key": row.photo_key,
         }
         for row in result.fetchall()
     ]
@@ -78,7 +80,7 @@ async def get_boarding_detail(db: AsyncSession, boarding_id: int) -> dict:
     result = await db.execute(
         text(
             "SELECT b.boarding_id, b.pet_id, p.name AS pet_name, "
-            "b.ward_id, w.ward_no, w.daily_rate, b.start_date, b.end_date "
+            "b.ward_id, w.ward_no, w.daily_rate, b.start_date, b.end_date, b.photo_key "
             "FROM boarding b "
             "JOIN pet p ON b.pet_id = p.pet_id "
             "JOIN ward w ON b.ward_id = w.ward_id "
@@ -107,6 +109,7 @@ async def get_boarding_detail(db: AsyncSession, boarding_id: int) -> dict:
         "start_date": str(row.start_date),
         "end_date": str(row.end_date) if row.end_date else None,
         "current_fee": str(fee),
+        "photo_key": row.photo_key,
     }
 
 

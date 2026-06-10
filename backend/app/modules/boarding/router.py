@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_pg_db
+from app.core.deps import get_current_user, get_pg_db, require_role
 from app.modules.boarding.schemas import BoardingCreate
 from app.modules.boarding.service import (
     create_boarding,
@@ -18,9 +18,9 @@ router = APIRouter(tags=["寄养管理"])
 async def register_boarding(
     data: BoardingCreate,
     db: AsyncSession = Depends(get_pg_db),
-    _current_user=Depends(get_current_user),
+    _current_user=Depends(require_role("管理员")),
 ):
-    """登记寄养"""
+    """登记寄养（仅管理员）"""
     result = await create_boarding(db, data)
     return JSONResponse(content=result, status_code=201)
 
@@ -48,7 +48,7 @@ async def boarding_detail(
 async def end(
     boarding_id: int,
     db: AsyncSession = Depends(get_pg_db),
-    _current_user=Depends(get_current_user),
+    _current_user=Depends(require_role("管理员")),
 ):
-    """结束寄养"""
+    """结束寄养（仅管理员）"""
     return await end_boarding(db, boarding_id)
