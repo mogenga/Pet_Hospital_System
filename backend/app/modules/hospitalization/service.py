@@ -58,34 +58,35 @@ async def admit(db: AsyncSession, data: AdmitCreate) -> dict:
     if existing.fetchone():
         raise Conflict(detail="该就诊已转入住院，不能重复转入")
 
-    async with db.begin():
-        # 锁定并检查笼位状态
-        ward = await db.execute(
-            text("SELECT ward_id, status FROM ward WHERE ward_id = :wid FOR UPDATE"),
-            {"wid": data.ward_id},
-        )
-        ward_row = ward.fetchone()
-        if ward_row is None:
-            raise NotFound(detail="笼位不存在")
-        if ward_row.status != "空闲":
-            raise Conflict(detail=f"笼位当前状态为'{ward_row.status}'，无法使用")
+    # 锁定并检查笼位状态（复用已有隐式事务）
+    ward = await db.execute(
+        text("SELECT ward_id, status FROM ward WHERE ward_id = :wid FOR UPDATE"),
+        {"wid": data.ward_id},
+    )
+    ward_row = ward.fetchone()
+    if ward_row is None:
+        raise NotFound(detail="笼位不存在")
+    if ward_row.status != "空闲":
+        raise Conflict(detail=f"笼位当前状态为'{ward_row.status}'，无法使用")
 
-        # 转入住院
-        result = await db.execute(
-            text(
-                "INSERT INTO hospitalization (visit_id, ward_id, admit_date) "
-                "VALUES (:vid, :wid, :admit) "
-                "RETURNING hosp_id"
-            ),
-            {"vid": data.visit_id, "wid": data.ward_id, "admit": data.admit_date},
-        )
-        hosp_id = result.scalar_one()
+    # 转入住院
+    result = await db.execute(
+        text(
+            "INSERT INTO hospitalization (visit_id, ward_id, admit_date) "
+            "VALUES (:vid, :wid, :admit) "
+            "RETURNING hosp_id"
+        ),
+        {"vid": data.visit_id, "wid": data.ward_id, "admit": data.admit_date},
+    )
+    hosp_id = result.scalar_one()
 
-        # 更新笼位状态
-        await db.execute(
-            text("UPDATE ward SET status = '占用' WHERE ward_id = :wid"),
-            {"wid": data.ward_id},
-        )
+    # 更新笼位状态
+    await db.execute(
+        text("UPDATE ward SET status = '占用' WHERE ward_id = :wid"),
+        {"wid": data.ward_id},
+    )
+
+    await db.flush()
 
     # 事务提交后刷新缓存
     await _invalidate_cache()

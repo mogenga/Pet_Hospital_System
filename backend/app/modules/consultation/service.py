@@ -174,23 +174,24 @@ async def create_diagnosis(
     if row.status != "接诊中":
         raise Conflict(detail=f"当前状态'{row.status}'不可诊断，需要先接诊")
 
-    # PG: 事务内插入诊断 + 更新 visit 状态
-    async with db.begin():
-        diag_result = await db.execute(
-            text(
-                "INSERT INTO diagnosis (visit_id, diagnosis_result, notes) "
-                "VALUES (:vid, :result, :notes) "
-                "RETURNING diagnosis_id, visit_id, diagnosis_result, notes"
-            ),
-            {"vid": visit_id, "result": data.diagnosis_result, "notes": data.notes},
-        )
-        diag_row = diag_result.fetchone()
+    # 插入诊断 + 更新 visit 状态（复用已有隐式事务）
+    diag_result = await db.execute(
+        text(
+            "INSERT INTO diagnosis (visit_id, diagnosis_result, notes) "
+            "VALUES (:vid, :result, :notes) "
+            "RETURNING diagnosis_id, visit_id, diagnosis_result, notes"
+        ),
+        {"vid": visit_id, "result": data.diagnosis_result, "notes": data.notes},
+    )
+    diag_row = diag_result.fetchone()
 
-        # 更新 visit 状态为待收费
-        await db.execute(
-            text("UPDATE visit SET status = '待收费' WHERE visit_id = :id"),
-            {"id": visit_id},
-        )
+    # 更新 visit 状态为待收费
+    await db.execute(
+        text("UPDATE visit SET status = '待收费' WHERE visit_id = :id"),
+        {"id": visit_id},
+    )
+
+    await db.flush()
 
     # MongoDB 双写（best-effort，不作为主数据源）
     mongo_doc = {
