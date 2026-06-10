@@ -9,7 +9,13 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+# 注册中文字体（ReportLab 内置 STSong-Light，支持 CJK）
+pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+CN_FONT = "STSong-Light"
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -64,10 +70,10 @@ async def _generate_and_upload_pdf(bill_id: int):
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        "CNTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=18
+        "CNTitle", parent=styles["Title"], fontName=CN_FONT, fontSize=18
     )
     header_style = ParagraphStyle(
-        "CNHeader", parent=styles["Normal"], fontName="Helvetica", fontSize=10
+        "CNHeader", parent=styles["Normal"], fontName=CN_FONT, fontSize=10
     )
 
     elements = [
@@ -100,13 +106,12 @@ async def _generate_and_upload_pdf(bill_id: int):
         TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F97316")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (-1, -1), CN_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("ALIGN", (0, 0), (3, -1), "LEFT"),
             ("ALIGN", (4, 0), (4, -1), "RIGHT"),
             ("GRID", (0, 0), (-1, -2), 0.5, colors.grey),
             ("LINEBELOW", (0, -2), (-1, -2), 1, colors.black),
-            ("FONTNAME", (3, -1), (4, -1), "Helvetica-Bold"),
             ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#FFF7ED")),
         ])
     )
@@ -115,7 +120,7 @@ async def _generate_and_upload_pdf(bill_id: int):
     elements.append(
         Paragraph(
             f"打印时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            styles["Normal"],
+            header_style,
         )
     )
 
