@@ -289,7 +289,7 @@ export default function HospList() {
               住院管理
             </CardTitle>
             {isAdminOrDoctor && (
-              <Button size="sm" onClick={() => setShowAdmit(true)}>
+              <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={() => setShowAdmit(true)}>
                 <Plus className="size-4" />
                 转入住院
               </Button>

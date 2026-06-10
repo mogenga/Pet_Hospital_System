@@ -1,27 +1,38 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.exceptions import AppError, app_error_handler
-from app.shared.minio import ensure_bucket
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时初始化
-    ensure_bucket()
+    # 启动时初始化（并行执行，减少阻塞）
+    from app.shared.minio import ensure_bucket
 
-    # 确保 MongoDB 索引（避免每次请求重复创建）
-    from app.shared.mongo_db import mongo_db as _mongo
+    # MinIO bucket 检查放到线程池，避免同步 HTTP 阻塞 event loop
     try:
-        await _mongo.medical_records.create_index("diagnosis_id", unique=True, name="idx_diagnosis_id")
-        await _mongo.medical_records.create_index("visit_id", name="idx_visit_id")
-        await _mongo.medical_records.create_index("created_by", name="idx_created_by")
-        await _mongo.nursing_logs.create_index("record_id", unique=True, name="idx_nursing_record_id")
-        await _mongo.nursing_logs.create_index("hosp_id", name="idx_nursing_hosp_id")
+        await asyncio.get_event_loop().run_in_executor(None, ensure_bucket)
     except Exception:
-        pass  # 索引可能已存在
+        pass  # MinIO 不可用时不影响核心业务启动
+
+    # MongoDB 索引并行创建（避免串行等待）
+    from app.shared.mongo_db import mongo_db as _mongo
+    async def create_indexes():
+        try:
+            await asyncio.gather(
+                _mongo.medical_records.create_index("diagnosis_id", unique=True, name="idx_diagnosis_id"),
+                _mongo.medical_records.create_index("visit_id", name="idx_visit_id"),
+                _mongo.medical_records.create_index("created_by", name="idx_created_by"),
+                _mongo.nursing_logs.create_index("record_id", unique=True, name="idx_nursing_record_id"),
+                _mongo.nursing_logs.create_index("hosp_id", name="idx_nursing_hosp_id"),
+            )
+        except Exception:
+            pass  # 索引可能已存在
+
+    await create_indexes()
 
     yield
 

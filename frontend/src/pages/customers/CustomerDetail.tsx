@@ -454,10 +454,13 @@ export default function CustomerDetail() {
       />
 
       {/* 头像大图预览 */}
-      <AvatarPreviewDialog
-        photoKey={previewKey}
-        onClose={() => setPreviewKey(null)}
-      />
+      {previewKey && (
+        <AvatarPreviewDialog
+          key={previewKey}
+          photoKey={previewKey}
+          onClose={() => setPreviewKey(null)}
+        />
+      )}
     </div>
   );
 }

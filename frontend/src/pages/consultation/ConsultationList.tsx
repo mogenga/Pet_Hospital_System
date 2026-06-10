@@ -50,9 +50,7 @@ const TAB_OPTIONS = [
 
 export default function ConsultationList() {
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const isDoctor = user?.role === "医生";
-  const isAdmin = user?.role === "管理员";
+  const isAdmin = useAuthStore((s) => s.user?.role === "管理员");
 
   const [activeTab, setActiveTab] = useState<string>("all");
   const statusParam = activeTab === "all" ? undefined : activeTab;
@@ -117,7 +115,7 @@ export default function ConsultationList() {
       {/* 标题栏 */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">就诊管理</h1>
-        {(isDoctor || isAdmin) && (
+        {isAdmin && (
           <Button
             onClick={() => {
               resetForm();
