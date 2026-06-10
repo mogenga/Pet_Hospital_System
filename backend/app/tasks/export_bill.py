@@ -13,9 +13,6 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-# 注册中文字体（ReportLab 内置 STSong-Light，支持 CJK）
-pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
-CN_FONT = "STSong-Light"
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -23,6 +20,10 @@ from app.core.config import settings
 from app.shared.minio import ensure_bucket, minio_client
 
 from .celery_app import celery_app
+
+# 注册中文字体（ReportLab 内置 STSong-Light，支持 CJK）
+pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+CN_FONT = "STSong-Light"
 
 logger = logging.getLogger(__name__)
 
