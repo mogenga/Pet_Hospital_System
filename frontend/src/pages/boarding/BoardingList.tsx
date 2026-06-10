@@ -96,6 +96,12 @@ function AddBoardingDialog({
   // 仅空闲笼位
   const freeWards = (wards || []).filter((w) => w.status === "空闲");
 
+  // 计算选中项的显示标签（避免 SelectValue 回退显示数字 ID）
+  const selectedPetLabel = allPets.find((p) => String(p.pet_id) === petId)?.label;
+  const selectedWardLabel = freeWards.find((w) => String(w.ward_id) === wardId)?.ward_no
+    ? `${freeWards.find((w) => String(w.ward_id) === wardId)!.ward_no} (${freeWards.find((w) => String(w.ward_id) === wardId)!.type})`
+    : undefined;
+
   const handleSubmit = async () => {
     if (!petId || !wardId || !startDate) return;
     try {
@@ -131,7 +137,9 @@ function AddBoardingDialog({
             <Label>宠物</Label>
             <Select value={petId} onValueChange={(v) => setPetId(v ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="请选择宠物" />
+                <SelectValue placeholder="请选择宠物">
+                  {selectedPetLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {allPets.length === 0 ? (
@@ -152,7 +160,9 @@ function AddBoardingDialog({
             <Label>笼位</Label>
             <Select value={wardId} onValueChange={(v) => setWardId(v ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="请选择笼位" />
+                <SelectValue placeholder="请选择笼位">
+                  {selectedWardLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {freeWards.length === 0 ? (

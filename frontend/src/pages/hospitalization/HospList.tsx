@@ -87,6 +87,14 @@ function AdmitDialog({
   // 仅空闲笼位
   const freeWards = (wards || []).filter((w) => w.status === "空闲");
 
+  // 计算选中项的显示标签（避免 SelectValue 回退显示数字 ID）
+  const selectedVisitLabel = visits?.find((v) => String(v.visit_id) === visitId)
+    ? `#${visitId} - 宠物#${visits!.find((v) => String(v.visit_id) === visitId)!.pet_id}`
+    : undefined;
+  const selectedWardLabel = freeWards.find((w) => String(w.ward_id) === wardId)
+    ? `${freeWards.find((w) => String(w.ward_id) === wardId)!.ward_no} (${freeWards.find((w) => String(w.ward_id) === wardId)!.type}, ${Number(freeWards.find((w) => String(w.ward_id) === wardId)!.daily_rate).toFixed(0)}元/天)`
+    : undefined;
+
   const handleSubmit = async () => {
     if (!visitId || !wardId || !admitDate) return;
     try {
@@ -120,7 +128,9 @@ function AdmitDialog({
             <Label>就诊记录</Label>
             <Select value={visitId} onValueChange={(v) => setVisitId(v ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="请选择待收费的就诊" />
+                <SelectValue placeholder="请选择待收费的就诊">
+                  {selectedVisitLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {visitsLoading ? (
@@ -145,7 +155,9 @@ function AdmitDialog({
             <Label>笼位</Label>
             <Select value={wardId} onValueChange={(v) => setWardId(v ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="请选择笼位" />
+                <SelectValue placeholder="请选择笼位">
+                  {selectedWardLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {wardsLoading ? (
