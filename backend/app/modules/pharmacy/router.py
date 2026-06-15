@@ -18,6 +18,15 @@ async def list_medicines(
     return await service.list_medicines(db)
 
 
+@router.get("/medicines/stats")
+async def medicine_category_stats(
+    db: AsyncSession = Depends(get_pg_db),
+    _: dict = Depends(get_current_user),
+):
+    """药品分类统计"""
+    return await service.medicine_stats(db)
+
+
 @router.post("/medicines", response_model=MedicineOut, status_code=201)
 async def create_medicine(
     body: MedicineCreate,

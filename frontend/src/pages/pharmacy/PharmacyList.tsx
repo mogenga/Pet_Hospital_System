@@ -7,6 +7,7 @@ import {
   useCreateMedicine,
   useBatches,
   useCreateBatch,
+  useMedicineStats,
 } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -314,8 +315,12 @@ function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number })
 export default function PharmacyList() {
   const isAdmin = useAuthStore((s) => s.user?.role === "管理员");
   const { data: medicines, isLoading: medsLoading } = useMedicines();
+  const { data: medStats } = useMedicineStats();
   const [showAddMedicine, setShowAddMedicine] = useState(false);
   const [showAddBatch, setShowAddBatch] = useState(false);
+
+  // 分类筛选
+  const [categoryFilter, setCategoryFilter] = useState("全部");
 
   // 低库存预警 toggle
   const [lowStock, setLowStock] = useState(false);
@@ -323,15 +328,50 @@ export default function PharmacyList() {
     lowStock ? 10 : undefined
   );
 
+  // 按分类筛选
+  const filteredMedicines =
+    categoryFilter === "全部"
+      ? medicines
+      : (medicines || []).filter((m) => m.category === categoryFilter);
+
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* ======== 分类统计 ======== */}
+      {medStats && medStats.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {medStats.map((s) => (
+            <Card
+              key={s.category}
+              className="warm-card flex-1 min-w-[120px] cursor-pointer px-4 py-3 transition-colors hover:bg-orange-50"
+              onClick={() =>
+                setCategoryFilter(
+                  categoryFilter === s.category ? "全部" : s.category
+                )
+              }
+            >
+              <div className="text-xs text-muted-foreground">
+                {s.category}
+              </div>
+              <div
+                className={`text-xl font-bold ${categoryFilter === s.category ? "text-primary" : ""}`}
+              >
+                {s.count}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {Number(s.total_value).toFixed(0)} 元
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* ======== 药品列表 ======== */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Pill className="size-5" />
-              药品列表
+              药品列表{categoryFilter !== "全部" ? ` · ${categoryFilter}` : ""}
             </CardTitle>
             {isAdmin && (
               <Button size="sm" onClick={() => setShowAddMedicine(true)}>
@@ -347,7 +387,11 @@ export default function PharmacyList() {
           ) : !medicines?.length ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Pill className="size-10 mb-2 opacity-30" />
-              <p className="text-sm">暂无药品数据</p>
+              <p className="text-sm">
+                {categoryFilter !== "全部"
+                  ? `暂无"${categoryFilter}"分类的药品`
+                  : "暂无药品数据"}
+              </p>
             </div>
           ) : (
             <Table>
@@ -360,7 +404,7 @@ export default function PharmacyList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {medicines.map((m) => (
+                {filteredMedicines.map((m) => (
                   <TableRow key={m.medicine_id}>
                     <TableCell className="font-medium">{m.name}</TableCell>
                     <TableCell>{m.unit}</TableCell>

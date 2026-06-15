@@ -89,6 +89,12 @@ export interface MedicineOut {
   category: string;
 }
 
+export interface MedicineCategoryStat {
+  category: string;
+  count: number;
+  total_value: string;
+}
+
 export interface MedicineCreate {
   name: string;
   unit: string;

@@ -3,7 +3,7 @@ import apiClient from "@/api/client";
 import type {
   CustomerOut, CustomerCreate, CustomerUpdate,
   PetCreate, PetUpdate,
-  MedicineOut, MedicineCreate, BatchOut, BatchCreate,
+  MedicineOut, MedicineCreate, MedicineCategoryStat, BatchOut, BatchCreate,
   VisitOut, VisitDetail, VisitCreate, DiagnosisCreate, PrescriptionCreate,
   CustomerVisitHistory,
   BillOut, BillDetail, BillItemCreate,
@@ -105,6 +105,15 @@ export function useCreateMedicine() {
     mutationFn: (data: MedicineCreate) =>
       apiClient.post("/api/pharmacy/medicines", data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["medicines"] }),
+  });
+}
+
+export function useMedicineStats() {
+  return useQuery<MedicineCategoryStat[]>({
+    queryKey: ["medicineStats"],
+    queryFn: () =>
+      apiClient.get("/api/pharmacy/medicines/stats").then((r) => r.data),
+    staleTime: 300000,
   });
 }
 
