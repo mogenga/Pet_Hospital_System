@@ -144,7 +144,10 @@ export function useCreateBatch() {
   return useMutation({
     mutationFn: (data: BatchCreate) =>
       apiClient.post("/api/pharmacy/batches", data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["batches"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["batches"] });
+      qc.invalidateQueries({ queryKey: ["medicineStats"] });
+    },
   });
 }
 
@@ -155,7 +158,10 @@ export function useUpdateBatch() {
       apiClient
         .put(`/api/pharmacy/batches/${id}`, data)
         .then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["batches"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["batches"] });
+      qc.invalidateQueries({ queryKey: ["medicineStats"] });
+    },
   });
 }
 
