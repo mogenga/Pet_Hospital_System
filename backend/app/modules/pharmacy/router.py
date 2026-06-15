@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, require_role
 from app.modules.pharmacy import service
-from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut
+from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut, MedicineUpdate
 from app.shared.pg_db import get_pg_db
 
 router = APIRouter(prefix="/api/pharmacy")
@@ -35,6 +35,17 @@ async def create_medicine(
 ):
     """新增药品（管理员）"""
     return await service.create_medicine(db, body)
+
+
+@router.put("/medicines/{medicine_id}", response_model=MedicineOut)
+async def update_medicine_endpoint(
+    medicine_id: int,
+    body: MedicineUpdate,
+    db: AsyncSession = Depends(get_pg_db),
+    _: dict = Depends(require_role("管理员")),
+):
+    """编辑药品（管理员）"""
+    return await service.update_medicine(db, medicine_id, body)
 
 
 @router.get("/batches", response_model=list[BatchOut])

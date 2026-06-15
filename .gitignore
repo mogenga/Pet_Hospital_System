@@ -22,3 +22,7 @@ frontend/dist/
 .worktrees/
 
 /data
+
+*.doc
+*.docx
+docs/参考

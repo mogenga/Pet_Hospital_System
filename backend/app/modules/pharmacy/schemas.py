@@ -15,6 +15,13 @@ class MedicineCreate(BaseModel):
     category: MedicineCategory
 
 
+class MedicineUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    unit: str | None = Field(default=None, min_length=1, max_length=20)
+    unit_price: float | None = Field(default=None, ge=0)
+    category: MedicineCategory | None = None
+
+
 class MedicineOut(BaseModel):
     medicine_id: int
     name: str

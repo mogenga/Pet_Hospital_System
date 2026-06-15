@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, Conflict, NotFound
-from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut
+from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut, MedicineUpdate
 from app.shared.redis import redis_client
 
 CACHE_KEY = "medicine:list"
@@ -42,6 +42,32 @@ async def create_medicine(db: AsyncSession, data: MedicineCreate) -> MedicineOut
     row = result.fetchone()
     await _invalidate_cache()
     return MedicineOut.model_validate(row._mapping)
+
+
+async def update_medicine(db: AsyncSession, medicine_id: int, data: MedicineUpdate) -> MedicineOut:
+    current = await db.execute(
+        text("SELECT name, unit, unit_price, category FROM medicine WHERE medicine_id = :id"),
+        {"id": medicine_id},
+    )
+    row = current.fetchone()
+    if row is None:
+        raise NotFound(detail="药品不存在")
+
+    new_name = data.name if data.name is not None else row.name
+    new_unit = data.unit if data.unit is not None else row.unit
+    new_price = data.unit_price if data.unit_price is not None else row.unit_price
+    new_cat = data.category if data.category is not None else row.category
+
+    result = await db.execute(
+        text(
+            "UPDATE medicine SET name = :name, unit = :unit, unit_price = :price, category = :cat "
+            "WHERE medicine_id = :id "
+            "RETURNING medicine_id, name, unit, unit_price, category"
+        ),
+        {"name": new_name, "unit": new_unit, "price": new_price, "cat": new_cat, "id": medicine_id},
+    )
+    await _invalidate_cache()
+    return MedicineOut.model_validate(result.fetchone()._mapping)
 
 
 async def list_batches(db: AsyncSession, stock_qty_lt: int | None = None) -> list[BatchOut]:

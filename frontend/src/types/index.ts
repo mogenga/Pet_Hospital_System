@@ -95,6 +95,13 @@ export interface MedicineCategoryStat {
   total_cost: string;
 }
 
+export interface MedicineUpdate {
+  name?: string | null;
+  unit?: string | null;
+  unit_price?: number | null;
+  category?: string | null;
+}
+
 export interface MedicineCreate {
   name: string;
   unit: string;

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pill, Warehouse, Plus, AlertTriangle, Loader2 } from "lucide-react";
+import { Pill, Warehouse, Plus, AlertTriangle, Loader2, Pencil } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import {
   useMedicines,
   useCreateMedicine,
+  useUpdateMedicine,
   useBatches,
   useCreateBatch,
   useMedicineStats,
@@ -59,26 +60,60 @@ const MEDICINE_CATEGORIES = [
 function AddMedicineDialog({
   open,
   onOpenChange,
+  editMedicine,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editMedicine?: MedicineOut | null;
 }) {
+  const isEdit = !!editMedicine;
   const createMedicine = useCreateMedicine();
+  const updateMedicine = useUpdateMedicine();
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [category, setCategory] = useState("");
 
+  // 编辑模式：预填已有数据
+  const [prevEditId, setPrevEditId] = useState<number | null>(null);
+  if (isEdit && editMedicine!.medicine_id !== prevEditId) {
+    setPrevEditId(editMedicine!.medicine_id);
+    setName(editMedicine!.name);
+    setUnit(editMedicine!.unit);
+    setUnitPrice(String(editMedicine!.unit_price));
+    setCategory(editMedicine!.category);
+  }
+  if (!isEdit && prevEditId !== null) {
+    setPrevEditId(null);
+    setName("");
+    setUnit("");
+    setUnitPrice("");
+    setCategory("");
+  }
+
   const handleSubmit = async () => {
     if (!name.trim() || !unit.trim() || !unitPrice || !category.trim()) return;
     try {
-      await createMedicine.mutateAsync({
-        name: name.trim(),
-        unit: unit.trim(),
-        unit_price: parseFloat(unitPrice),
-        category: category.trim(),
-      });
-      toast.success("药品新增成功");
+      if (isEdit) {
+        await updateMedicine.mutateAsync({
+          id: editMedicine!.medicine_id,
+          data: {
+            name: name.trim(),
+            unit: unit.trim(),
+            unit_price: parseFloat(unitPrice),
+            category,
+          },
+        });
+        toast.success("药品编辑成功");
+      } else {
+        await createMedicine.mutateAsync({
+          name: name.trim(),
+          unit: unit.trim(),
+          unit_price: parseFloat(unitPrice),
+          category,
+        });
+        toast.success("药品新增成功");
+      }
       setName("");
       setUnit("");
       setUnitPrice("");
@@ -93,11 +128,13 @@ function AddMedicineDialog({
     }
   };
 
+  const isMutating = createMedicine.isPending || updateMedicine.isPending;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>新增药品</DialogTitle>
+          <DialogTitle>{isEdit ? "编辑药品" : "新增药品"}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
@@ -148,12 +185,12 @@ function AddMedicineDialog({
           <DialogClose render={<Button variant="outline" />}>取消</DialogClose>
           <Button
             onClick={handleSubmit}
-            disabled={createMedicine.isPending}
+            disabled={isMutating}
           >
-            {createMedicine.isPending && (
+            {isMutating && (
               <Loader2 className="animate-spin" />
             )}
-            提交
+            保存
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -318,6 +355,7 @@ export default function PharmacyList() {
   const { data: medStats } = useMedicineStats();
   const [showAddMedicine, setShowAddMedicine] = useState(false);
   const [showAddBatch, setShowAddBatch] = useState(false);
+  const [editingMedicine, setEditingMedicine] = useState<MedicineOut | null>(null);
 
   // 分类筛选
   const [categoryFilter, setCategoryFilter] = useState("全部");
@@ -374,7 +412,7 @@ export default function PharmacyList() {
               药品列表{categoryFilter !== "全部" ? ` · ${categoryFilter}` : ""}
             </CardTitle>
             {isAdmin && (
-              <Button size="sm" onClick={() => setShowAddMedicine(true)}>
+              <Button size="sm" onClick={() => { setEditingMedicine(null); setShowAddMedicine(true); }}>
                 <Plus className="size-4" />
                 新增药品
               </Button>
@@ -401,6 +439,7 @@ export default function PharmacyList() {
                   <TableHead>单位</TableHead>
                   <TableHead>单价</TableHead>
                   <TableHead>分类</TableHead>
+                  {isAdmin && <TableHead>操作</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -412,6 +451,20 @@ export default function PharmacyList() {
                     <TableCell>
                       <Badge variant="secondary">{m.category}</Badge>
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => {
+                            setEditingMedicine(m);
+                            setShowAddMedicine(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -496,7 +549,11 @@ export default function PharmacyList() {
       {/* 弹窗 */}
       <AddMedicineDialog
         open={showAddMedicine}
-        onOpenChange={setShowAddMedicine}
+        onOpenChange={(open) => {
+          setShowAddMedicine(open);
+          if (!open) setEditingMedicine(null);
+        }}
+        editMedicine={editingMedicine}
       />
       <AddBatchDialog
         open={showAddBatch}

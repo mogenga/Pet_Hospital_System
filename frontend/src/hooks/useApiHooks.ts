@@ -3,7 +3,7 @@ import apiClient from "@/api/client";
 import type {
   CustomerOut, CustomerCreate, CustomerUpdate,
   PetCreate, PetUpdate,
-  MedicineOut, MedicineCreate, MedicineCategoryStat, BatchOut, BatchCreate,
+  MedicineOut, MedicineCreate, MedicineUpdate, MedicineCategoryStat, BatchOut, BatchCreate,
   VisitOut, VisitDetail, VisitCreate, DiagnosisCreate, PrescriptionCreate,
   CustomerVisitHistory,
   BillOut, BillDetail, BillItemCreate,
@@ -104,6 +104,17 @@ export function useCreateMedicine() {
   return useMutation({
     mutationFn: (data: MedicineCreate) =>
       apiClient.post("/api/pharmacy/medicines", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["medicines"] }),
+  });
+}
+
+export function useUpdateMedicine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: MedicineUpdate }) =>
+      apiClient
+        .put(`/api/pharmacy/medicines/${id}`, data)
+        .then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["medicines"] }),
   });
 }
