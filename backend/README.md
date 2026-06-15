@@ -130,8 +130,8 @@ backend/
 |------|---------|---------|
 | auth | `/api` | JWT 登录/登出/黑名单, 账号 CRUD（管理员） |
 | customer | `/api/customers` | 客户 CRUD, 宠物 CRUD, 就诊历史聚合 |
-| pharmacy | `/api/pharmacy` | 药品 CRUD, 批次入库, 库存预警, 行级锁扣减 |
-| consultation | `/api/consultation` | 就诊登记→接诊→诊断→开方→取消, 状态流转 |
+| pharmacy | `/api/pharmacy` | 药品/批次 CRUD, 入库, 库存预警, 行级锁扣减, 分类统计 |
+| consultation | `/api/consultation` | 就诊登记→接诊→诊断→开方→完成诊疗→取消, 状态流转 |
 | billing | `/api/billing` | 账单自动生成, 收费项幂等, 结账, PDF 导出 |
 | hospitalization | `/api/hospitalization` | 转入住院, 护理记录, 出院 |
 | boarding | `/api/boarding` | 寄养登记, 结束寄养, 按天计费 |
