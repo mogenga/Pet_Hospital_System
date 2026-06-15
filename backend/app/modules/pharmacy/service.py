@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError, Conflict, NotFound
-from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut, MedicineUpdate
+from app.modules.pharmacy.schemas import BatchCreate, BatchOut, BatchUpdate, MedicineCreate, MedicineOut, MedicineUpdate
 from app.shared.redis import redis_client
 
 CACHE_KEY = "medicine:list"
@@ -125,6 +125,59 @@ async def create_batch(db: AsyncSession, data: BatchCreate) -> BatchOut:
         expire_date=data.expire_date,
         stock_qty=data.stock_qty,
         cost_price=data.cost_price,
+    )
+
+
+async def update_batch(db: AsyncSession, batch_id: int, data: BatchUpdate) -> BatchOut:
+    current = await db.execute(
+        text(
+            "SELECT mb.medicine_id, mb.in_date, mb.expire_date, mb.stock_qty, mb.cost_price, "
+            "m.name AS medicine_name "
+            "FROM medicine_batch mb JOIN medicine m ON mb.medicine_id = m.medicine_id "
+            "WHERE mb.batch_id = :id"
+        ),
+        {"id": batch_id},
+    )
+    row = current.fetchone()
+    if row is None:
+        raise NotFound(detail="批次不存在")
+
+    new_mid = data.medicine_id if data.medicine_id is not None else row.medicine_id
+    new_in = data.in_date if data.in_date is not None else row.in_date
+    new_exp = data.expire_date if data.expire_date is not None else row.expire_date
+    new_qty = data.stock_qty if data.stock_qty is not None else row.stock_qty
+    new_cost = data.cost_price if data.cost_price is not None else row.cost_price
+
+    if new_exp <= new_in:
+        raise AppError(detail="expire_date 必须大于 in_date")
+
+    # 验证新药品存在
+    if data.medicine_id is not None:
+        med = await db.execute(
+            text("SELECT name FROM medicine WHERE medicine_id = :id"),
+            {"id": data.medicine_id},
+        )
+        med_row = med.fetchone()
+        if med_row is None:
+            raise NotFound(detail="药品不存在")
+
+    result = await db.execute(
+        text(
+            "UPDATE medicine_batch SET medicine_id = :mid, in_date = :in_d, expire_date = :exp_d, "
+            "stock_qty = :qty, cost_price = :cost "
+            "WHERE batch_id = :id "
+            "RETURNING batch_id"
+        ),
+        {"mid": new_mid, "in_d": new_in, "exp_d": new_exp, "qty": new_qty, "cost": new_cost, "id": batch_id},
+    )
+    return BatchOut(
+        batch_id=batch_id,
+        medicine_id=new_mid,
+        medicine_name=med_row.name if data.medicine_id is not None else row.medicine_name,
+        in_date=new_in,
+        expire_date=new_exp,
+        stock_qty=new_qty,
+        cost_price=new_cost,
     )
 
 

@@ -40,6 +40,14 @@ class BatchCreate(BaseModel):
     cost_price: float = Field(ge=0)
 
 
+class BatchUpdate(BaseModel):
+    medicine_id: int | None = None
+    in_date: date | None = None
+    expire_date: date | None = None
+    stock_qty: int | None = Field(default=None, ge=0)
+    cost_price: float | None = Field(default=None, ge=0)
+
+
 class BatchOut(BaseModel):
     batch_id: int
     medicine_id: int

@@ -119,6 +119,14 @@ export interface BatchOut {
   cost_price: number;
 }
 
+export interface BatchUpdate {
+  medicine_id?: number | null;
+  in_date?: string | null;
+  expire_date?: string | null;
+  stock_qty?: number | null;
+  cost_price?: number | null;
+}
+
 export interface BatchCreate {
   medicine_id: number;
   in_date: string;

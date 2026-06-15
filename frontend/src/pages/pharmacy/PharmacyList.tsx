@@ -8,6 +8,7 @@ import {
   useUpdateMedicine,
   useBatches,
   useCreateBatch,
+  useUpdateBatch,
   useMedicineStats,
 } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { MedicineOut, BatchOut } from "@/types";
 
 // ---- 新增药品表单 ----
 // 药品分类（固定选项）
@@ -202,12 +204,16 @@ function AddMedicineDialog({
 function AddBatchDialog({
   open,
   onOpenChange,
+  editBatch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editBatch?: BatchOut | null;
 }) {
+  const isBatchEdit = !!editBatch;
   const { data: medicines, isLoading: medsLoading } = useMedicines();
   const createBatch = useCreateBatch();
+  const updateBatch = useUpdateBatch();
   const [medicineId, setMedicineId] = useState("");
 
   // 计算选中药品的名称（避免 SelectValue 回退显示数字 ID）
@@ -219,17 +225,50 @@ function AddBatchDialog({
   const [stockQty, setStockQty] = useState("");
   const [costPrice, setCostPrice] = useState("");
 
+  // 编辑模式：预填已有数据
+  const [prevBatchId, setPrevBatchId] = useState<number | null>(null);
+  if (isBatchEdit && editBatch!.batch_id !== prevBatchId) {
+    setPrevBatchId(editBatch!.batch_id);
+    setMedicineId(String(editBatch!.medicine_id));
+    setInDate(editBatch!.in_date?.toString().slice(0, 10) ?? "");
+    setExpireDate(editBatch!.expire_date?.toString().slice(0, 10) ?? "");
+    setStockQty(String(editBatch!.stock_qty));
+    setCostPrice(String(editBatch!.cost_price));
+  }
+  if (!isBatchEdit && prevBatchId !== null) {
+    setPrevBatchId(null);
+    setMedicineId("");
+    setInDate("");
+    setExpireDate("");
+    setStockQty("");
+    setCostPrice("");
+  }
+
   const handleSubmit = async () => {
     if (!medicineId || !inDate || !expireDate || !stockQty || !costPrice) return;
     try {
-      await createBatch.mutateAsync({
-        medicine_id: parseInt(medicineId),
-        in_date: inDate,
-        expire_date: expireDate,
-        stock_qty: parseInt(stockQty),
-        cost_price: parseFloat(costPrice),
-      });
-      toast.success("入库成功");
+      if (isBatchEdit) {
+        await updateBatch.mutateAsync({
+          id: editBatch!.batch_id,
+          data: {
+            medicine_id: parseInt(medicineId),
+            in_date: inDate,
+            expire_date: expireDate,
+            stock_qty: parseInt(stockQty),
+            cost_price: parseFloat(costPrice),
+          },
+        });
+        toast.success("批次编辑成功");
+      } else {
+        await createBatch.mutateAsync({
+          medicine_id: parseInt(medicineId),
+          in_date: inDate,
+          expire_date: expireDate,
+          stock_qty: parseInt(stockQty),
+          cost_price: parseFloat(costPrice),
+        });
+        toast.success("入库成功");
+      }
       setMedicineId("");
       setInDate("");
       setExpireDate("");
@@ -249,7 +288,7 @@ function AddBatchDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>药品入库</DialogTitle>
+          <DialogTitle>{isBatchEdit ? "编辑批次" : "药品入库"}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
@@ -321,12 +360,12 @@ function AddBatchDialog({
           <DialogClose render={<Button variant="outline" />}>取消</DialogClose>
           <Button
             onClick={handleSubmit}
-            disabled={createBatch.isPending}
+            disabled={createBatch.isPending || updateBatch.isPending}
           >
-            {createBatch.isPending && (
+            {(createBatch.isPending || updateBatch.isPending) && (
               <Loader2 className="animate-spin" />
             )}
-            提交
+            保存
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -356,6 +395,7 @@ export default function PharmacyList() {
   const [showAddMedicine, setShowAddMedicine] = useState(false);
   const [showAddBatch, setShowAddBatch] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<MedicineOut | null>(null);
+  const [editingBatch, setEditingBatch] = useState<BatchOut | null>(null);
 
   // 分类筛选
   const [categoryFilter, setCategoryFilter] = useState("全部");
@@ -491,7 +531,7 @@ export default function PharmacyList() {
                 低库存预警
               </Button>
               {isAdmin && (
-                <Button size="sm" onClick={() => setShowAddBatch(true)}>
+                <Button size="sm" onClick={() => { setEditingBatch(null); setShowAddBatch(true); }}>
                   <Plus className="size-4" />
                   入库
                 </Button>
@@ -519,6 +559,7 @@ export default function PharmacyList() {
                   <TableHead>过期日期</TableHead>
                   <TableHead>库存量</TableHead>
                   <TableHead>成本价</TableHead>
+                  {isAdmin && <TableHead>操作</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -538,6 +579,20 @@ export default function PharmacyList() {
                       </Badge>
                     </TableCell>
                     <TableCell>{Number(b.cost_price).toFixed(2)}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => {
+                            setEditingBatch(b);
+                            setShowAddBatch(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -557,7 +612,11 @@ export default function PharmacyList() {
       />
       <AddBatchDialog
         open={showAddBatch}
-        onOpenChange={setShowAddBatch}
+        onOpenChange={(open) => {
+          setShowAddBatch(open);
+          if (!open) setEditingBatch(null);
+        }}
+        editBatch={editingBatch}
       />
     </div>
   );

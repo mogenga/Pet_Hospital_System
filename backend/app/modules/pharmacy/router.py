@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, require_role
 from app.modules.pharmacy import service
-from app.modules.pharmacy.schemas import BatchCreate, BatchOut, MedicineCreate, MedicineOut, MedicineUpdate
+from app.modules.pharmacy.schemas import BatchCreate, BatchOut, BatchUpdate, MedicineCreate, MedicineOut, MedicineUpdate
 from app.shared.pg_db import get_pg_db
 
 router = APIRouter(prefix="/api/pharmacy")
@@ -66,3 +66,14 @@ async def create_batch(
 ):
     """批次入库（管理员）"""
     return await service.create_batch(db, body)
+
+
+@router.put("/batches/{batch_id}", response_model=BatchOut)
+async def update_batch_endpoint(
+    batch_id: int,
+    body: BatchUpdate,
+    db: AsyncSession = Depends(get_pg_db),
+    _: dict = Depends(require_role("管理员")),
+):
+    """编辑批次（管理员）"""
+    return await service.update_batch(db, batch_id, body)
