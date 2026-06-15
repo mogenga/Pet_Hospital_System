@@ -149,11 +149,11 @@ async def deduct_stock(db: AsyncSession, medicine_id: int, quantity: int) -> dic
 
 
 async def medicine_stats(db: AsyncSession) -> list[dict]:
-    """药品分类统计：每个分类的药品数量和总库存价值"""
+    """药品分类统计：每个分类的药品数量和库存成本价值"""
     result = await db.execute(
         text(
             "SELECT m.category, COUNT(*) AS count, "
-            "COALESCE(SUM(mb.stock_qty * m.unit_price), 0) AS total_value "
+            "COALESCE(SUM(mb.stock_qty * mb.cost_price), 0) AS total_cost "
             "FROM medicine m "
             "LEFT JOIN medicine_batch mb ON m.medicine_id = mb.medicine_id AND mb.stock_qty > 0 "
             "GROUP BY m.category "
@@ -164,7 +164,7 @@ async def medicine_stats(db: AsyncSession) -> list[dict]:
         {
             "category": row.category,
             "count": row.count,
-            "total_value": str(row.total_value),
+            "total_cost": str(row.total_cost),
         }
         for row in result.fetchall()
     ]

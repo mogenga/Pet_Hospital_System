@@ -92,7 +92,7 @@ export interface MedicineOut {
 export interface MedicineCategoryStat {
   category: string;
   count: number;
-  total_value: string;
+  total_cost: string;
 }
 
 export interface MedicineCreate {

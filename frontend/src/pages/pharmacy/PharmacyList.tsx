@@ -358,7 +358,7 @@ export default function PharmacyList() {
                 {s.count}
               </div>
               <div className="text-xs text-muted-foreground">
-                {Number(s.total_value).toFixed(0)} 元
+                成本 {Number(s.total_cost).toFixed(0)} 元
               </div>
             </Card>
           ))}
