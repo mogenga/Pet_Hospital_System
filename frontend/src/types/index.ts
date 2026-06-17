@@ -25,12 +25,16 @@ export interface AccountOut {
   is_active: boolean;
   last_login: string | null;
   created_at: string;
+  employee_name: string;
+  employee_role: string;
+  employee_phone: string;
 }
 
 export interface AccountCreate {
-  employee_id: number;
-  username: string;
-  password: string;
+  name: string;
+  phone: string;
+  role: string;
+  password?: string;
 }
 
 // 客户与宠物

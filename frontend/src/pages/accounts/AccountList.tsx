@@ -6,7 +6,6 @@ import {
   useCreateAccount,
   useToggleAccount,
   useDeleteAccount,
-  useEmployees,
 } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,22 +39,22 @@ import type { AccountOut } from "@/types";
 
 export default function AccountList() {
   const { data: accounts, isLoading, isError } = useAccounts();
-  const { data: employees } = useEmployees();
   const createMutation = useCreateAccount();
   const toggleMutation = useToggleAccount();
   const deleteMutation = useDeleteAccount();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    employee_id: "",
-    username: "",
+    name: "",
+    phone: "",
+    role: "医生",
     password: "",
   });
 
   const [deleteTarget, setDeleteTarget] = useState<AccountOut | null>(null);
 
   const openCreate = () => {
-    setFormData({ employee_id: "", username: "", password: "" });
+    setFormData({ name: "", phone: "", role: "医生", password: "" });
     setDialogOpen(true);
   };
 
@@ -64,9 +63,10 @@ export default function AccountList() {
   const handleCreate = () => {
     createMutation.mutate(
       {
-        employee_id: parseInt(formData.employee_id),
-        username: formData.username.trim(),
-        password: formData.password,
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        role: formData.role,
+        password: formData.password || undefined,
       },
       {
         onSuccess: () => {
@@ -98,9 +98,9 @@ export default function AccountList() {
   };
 
   const canSubmit =
-    formData.employee_id &&
-    formData.username.trim() &&
-    formData.password;
+    formData.name.trim() &&
+    formData.phone.trim().length >= 6 &&
+    formData.role;
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,8 +137,9 @@ export default function AccountList() {
           <TableHeader>
             <TableRow>
               <TableHead>账号ID</TableHead>
-              <TableHead>用户名</TableHead>
-              <TableHead>员工ID</TableHead>
+              <TableHead>姓名</TableHead>
+              <TableHead>手机号</TableHead>
+              <TableHead>职位</TableHead>
               <TableHead>
                 <span className="inline-flex items-center gap-1">
                   <Shield className="size-3.5" />
@@ -156,8 +157,9 @@ export default function AccountList() {
                 <TableCell className="text-muted-foreground">
                   #{a.account_id}
                 </TableCell>
-                <TableCell className="font-medium">{a.username}</TableCell>
-                <TableCell>{a.employee_id}</TableCell>
+                <TableCell className="font-medium">{a.employee_name}</TableCell>
+                <TableCell>{a.employee_phone}</TableCell>
+                <TableCell>{a.employee_role}</TableCell>
                 <TableCell>
                   <Badge variant={a.is_active ? "default" : "destructive"}>
                     {a.is_active ? "启用" : "停用"}
@@ -214,38 +216,50 @@ export default function AccountList() {
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>员工</Label>
+              <Label htmlFor="acc-name">姓名</Label>
+              <Input
+                id="acc-name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="请输入员工姓名"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="acc-phone">电话</Label>
+              <Input
+                id="acc-phone"
+                value={formData.phone}
+                onChange={(e) => {
+                  const phone = e.target.value;
+                  setFormData((prev) => ({
+                    ...prev,
+                    phone,
+                    // 自动填充密码为电话后6位
+                    password: phone.length >= 6 ? phone.slice(-6) : "",
+                  }));
+                }}
+                placeholder="请输入手机号"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>职位</Label>
               <Select
-                value={formData.employee_id}
+                value={formData.role}
                 onValueChange={(v) =>
-                  setFormData((prev) => ({ ...prev, employee_id: v ?? "" }))
+                  setFormData((prev) => ({ ...prev, role: v }))
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="请选择员工" />
+                  <SelectValue placeholder="请选择职位" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(employees || []).map((e) => (
-                    <SelectItem
-                      key={e.employee_id}
-                      value={String(e.employee_id)}
-                    >
-                      {e.name}（{e.role}）
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="医生">医生</SelectItem>
+                  <SelectItem value="护士">护士</SelectItem>
+                  <SelectItem value="管理员">管理员</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="acc-username">用户名</Label>
-              <Input
-                id="acc-username"
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, username: e.target.value }))
-                }
-                placeholder="请输入用户名"
-              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="acc-password">密码</Label>
@@ -256,8 +270,11 @@ export default function AccountList() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
                 }
-                placeholder="请输入密码"
+                placeholder="默认使用电话后6位"
               />
+              <p className="text-xs text-muted-foreground">
+                不填则自动使用电话后6位作为密码
+              </p>
             </div>
           </div>
           <DialogFooter>

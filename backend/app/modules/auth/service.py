@@ -101,50 +101,77 @@ async def logout(redis: Redis, token: str):
 
 
 async def create_account(db: AsyncSession, data: AccountCreate) -> AccountOut:
-    # 检查 username 唯一
-    existing = await db.execute(
+    """新增账号，同时创建员工记录"""
+    # 检查手机号唯一（employee.phone）
+    existing_phone = await db.execute(
+        text("SELECT 1 FROM employee WHERE phone = :phone"),
+        {"phone": data.phone},
+    )
+    if existing_phone.fetchone():
+        raise Conflict(detail="该手机号已被其他员工使用")
+
+    # 密码默认使用电话后6位
+    password = data.password if data.password else data.phone[-6:]
+    if len(password) < 6:
+        raise Conflict(detail="密码长度不足，手机号至少需要6位")
+
+    # 用户名使用手机号
+    username = data.phone
+
+    # 检查用户名唯一
+    existing_username = await db.execute(
         text("SELECT 1 FROM account WHERE username = :username"),
-        {"username": data.username},
+        {"username": username},
     )
-    if existing.fetchone():
-        raise Conflict(detail="用户名已存在")
+    if existing_username.fetchone():
+        raise Conflict(detail="该手机号已注册账号")
 
-    # 检查 employee 存在且未绑定账号
-    emp = await db.execute(
-        text(
-            "SELECT e.employee_id, e.name, e.role, e.phone "
-            "FROM employee e LEFT JOIN account a ON e.employee_id = a.employee_id "
-            "WHERE e.employee_id = :eid AND a.account_id IS NULL"
-        ),
-        {"eid": data.employee_id},
-    )
-    emp_row = emp.fetchone()
-    if emp_row is None:
-        raise NotFound(detail="员工不存在或已有绑定账号")
+    password_hash = hash_password(password)
 
-    password_hash = hash_password(data.password)
-    result = await db.execute(
-        text(
-            "INSERT INTO account (employee_id, username, password_hash) "
-            "VALUES (:eid, :username, :ph) RETURNING account_id, employee_id, username, is_active, last_login, created_at"
-        ),
-        {"eid": data.employee_id, "username": data.username, "ph": password_hash},
-    )
-    row = result.fetchone()
+    # 在事务中创建员工和账号
+    async with db.begin_nested():
+        # 创建员工
+        emp_result = await db.execute(
+            text(
+                "INSERT INTO employee (name, role, phone) "
+                "VALUES (:name, :role, :phone) RETURNING employee_id, name, role, phone"
+            ),
+            {"name": data.name, "role": data.role, "phone": data.phone},
+        )
+        emp_row = emp_result.fetchone()
+
+        # 创建账号
+        acct_result = await db.execute(
+            text(
+                "INSERT INTO account (employee_id, username, password_hash) "
+                "VALUES (:eid, :username, :ph) RETURNING account_id, employee_id, username, is_active, last_login, created_at"
+            ),
+            {"eid": emp_row.employee_id, "username": username, "ph": password_hash},
+        )
+        acct_row = acct_result.fetchone()
+
     await _invalidate_cache()
     return AccountOut(
-        account_id=row.account_id,
-        employee_id=row.employee_id,
-        username=row.username,
-        is_active=row.is_active,
-        last_login=row.last_login,
-        created_at=row.created_at,
+        account_id=acct_row.account_id,
+        employee_id=acct_row.employee_id,
+        username=acct_row.username,
+        is_active=acct_row.is_active,
+        last_login=acct_row.last_login,
+        created_at=acct_row.created_at,
+        employee_name=emp_row.name,
+        employee_role=emp_row.role,
+        employee_phone=emp_row.phone,
     )
 
 
 async def list_accounts(db: AsyncSession) -> list[AccountOut]:
     result = await db.execute(
-        text("SELECT account_id, employee_id, username, is_active, last_login, created_at FROM account ORDER BY account_id")
+        text(
+            "SELECT a.account_id, a.employee_id, a.username, a.is_active, a.last_login, a.created_at, "
+            "e.name AS employee_name, e.role AS employee_role, e.phone AS employee_phone "
+            "FROM account a JOIN employee e ON a.employee_id = e.employee_id "
+            "ORDER BY a.account_id"
+        )
     )
     return [
         AccountOut(
@@ -154,6 +181,9 @@ async def list_accounts(db: AsyncSession) -> list[AccountOut]:
             is_active=row.is_active,
             last_login=row.last_login,
             created_at=row.created_at,
+            employee_name=row.employee_name,
+            employee_role=row.employee_role,
+            employee_phone=row.employee_phone,
         )
         for row in result.fetchall()
     ]
@@ -170,6 +200,14 @@ async def toggle_account(db: AsyncSession, account_id: int, is_active: bool) -> 
     row = result.fetchone()
     if row is None:
         raise NotFound(detail="账号不存在")
+
+    # 查询关联的员工信息
+    emp = await db.execute(
+        text("SELECT name, role, phone FROM employee WHERE employee_id = :eid"),
+        {"eid": row.employee_id},
+    )
+    emp_row = emp.fetchone()
+
     return AccountOut(
         account_id=row.account_id,
         employee_id=row.employee_id,
@@ -177,6 +215,9 @@ async def toggle_account(db: AsyncSession, account_id: int, is_active: bool) -> 
         is_active=row.is_active,
         last_login=row.last_login,
         created_at=row.created_at,
+        employee_name=emp_row.name if emp_row else "",
+        employee_role=emp_row.role if emp_row else "",
+        employee_phone=emp_row.phone if emp_row else "",
     )
 
 
