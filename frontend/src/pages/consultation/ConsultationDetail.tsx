@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -180,7 +180,7 @@ export default function ConsultationDetail() {
   const [prescriptionRows, setPrescriptionRows] = useState<PrescriptionRow[]>(
     []
   );
-  const [rowKeyCounter, setRowKeyCounter] = useState(0);
+  const rowKeyRef = useRef(0);  // 用 ref 避免闭包过期导致 key 重复
 
   // 生成收费项 loading
   const [generatingBill, setGeneratingBill] = useState(false);
@@ -265,10 +265,10 @@ export default function ConsultationDetail() {
 
   // ---- 处方行操作 ----
   const addPrescriptionRow = () => {
-    setRowKeyCounter((c) => c + 1);
+    const key = ++rowKeyRef.current;  // ref 自增保证绝对唯一，无闭包过期问题
     setPrescriptionRows((prev) => [
       ...prev,
-      { key: rowKeyCounter, batchId: "", quantity: "", dosage: "" },
+      { key, batchId: "", quantity: "", dosage: "" },
     ]);
   };
 
@@ -289,6 +289,22 @@ export default function ConsultationDetail() {
   // ---- 提交处方 ----
   const handleSubmitPrescription = () => {
     if (!diagnosis) return;
+
+    // 先检查是否有空行（用户点击了"添加处方"但未填写）
+    const emptyRows = prescriptionRows.filter(
+      (r) => !r.batchId || !r.quantity
+    );
+    if (prescriptionRows.length > 0 && emptyRows.length === prescriptionRows.length) {
+      // 所有行都不完整
+      const missingBatch = emptyRows.some((r) => !r.batchId);
+      const missingQty = emptyRows.some((r) => !r.quantity);
+      const hint = [];
+      if (missingBatch) hint.push("选择药品");
+      if (missingQty) hint.push("填写数量");
+      toast.error(`请${hint.join("并")}`);
+      return;
+    }
+
     const items = prescriptionRows
       .filter((r) => r.batchId && r.quantity)
       .map((r) => ({

@@ -120,6 +120,8 @@ export default function BillingDetail() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DetailItem label="账单ID" value={`#${bill.bill_id}`} />
             <DetailItem label="就诊ID" value={`#${bill.visit_id}`} />
+            <DetailItem label="宠物名称" value={bill.pet_name || "-"} />
+            <DetailItem label="客户名称" value={bill.customer_name || "-"} />
             <DetailItem
               label="状态"
               value={<StatusBadge status={bill.status} />}

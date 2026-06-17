@@ -15,6 +15,7 @@ import {
   useCreateBoarding,
   useEndBoarding,
   useCustomers,
+  useHospitalizations,
   useWards,
 } from "@/hooks/useApiHooks";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ function AddBoardingDialog({
 }) {
   const { data: customers } = useCustomers();
   const { data: wards } = useWards();
+  const { data: hospitalizations } = useHospitalizations("住院中");
   const createBoarding = useCreateBoarding();
 
   const [petId, setPetId] = useState("");
@@ -85,12 +87,19 @@ function AddBoardingDialog({
   const [startDate, setStartDate] = useState("");
   const [photoKey, setPhotoKey] = useState<string | null>(null);
 
-  // 展平所有客户的宠物为下拉选项
+  // 正在住院的宠物 ID 集合
+  const hospitalizedPetIds = new Set(
+    (hospitalizations || []).map((h) => h.pet_id)
+  );
+
+  // 展平所有客户的宠物为下拉选项，排除正在住院的宠物
   const allPets = (customers || []).flatMap((c) =>
-    c.pets.map((p) => ({
-      pet_id: p.pet_id,
-      label: `${p.name} (${c.name})`,
-    }))
+    c.pets
+      .filter((p) => !hospitalizedPetIds.has(p.pet_id))
+      .map((p) => ({
+        pet_id: p.pet_id,
+        label: `${p.name} (${c.name})`,
+      }))
   );
 
   // 仅空闲笼位

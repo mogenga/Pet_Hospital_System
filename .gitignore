@@ -5,6 +5,7 @@
 docs/superpowers
 .superpowers/
 paper_rewriting_output/*
+docs/photos
 
 # Python
 __pycache__/

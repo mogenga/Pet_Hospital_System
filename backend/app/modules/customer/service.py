@@ -255,7 +255,8 @@ async def get_customer_history(
     """客户就诊历史聚合"""
     visits = await db.execute(
         text(
-            "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status "
+            "SELECT v.visit_id, v.pet_id, v.employee_id, v.visit_time, v.complaint, v.status, "
+            "p.name AS pet_name "
             "FROM visit v JOIN pet p ON v.pet_id = p.pet_id "
             "WHERE p.customer_id = :cid "
             "ORDER BY v.visit_time DESC"
@@ -284,6 +285,7 @@ async def get_customer_history(
         visit_data = {
             "visit_id": v.visit_id,
             "pet_id": v.pet_id,
+            "pet_name": v.pet_name,
             "employee_id": v.employee_id,
             "visit_time": v.visit_time.isoformat(),
             "complaint": v.complaint,

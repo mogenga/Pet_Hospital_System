@@ -104,7 +104,7 @@ async def list_hospitalizations(db: AsyncSession, status: str | None = None) -> 
     query = """
         SELECT h.hosp_id, h.visit_id, h.ward_id, h.admit_date, h.discharge_date, h.status,
                w.ward_no, w.type AS ward_type,
-               p.name AS pet_name, c.name AS customer_name
+               p.pet_id, p.name AS pet_name, c.name AS customer_name
         FROM hospitalization h
         JOIN ward w ON h.ward_id = w.ward_id
         JOIN visit v ON h.visit_id = v.visit_id
@@ -128,6 +128,7 @@ async def list_hospitalizations(db: AsyncSession, status: str | None = None) -> 
             "admit_date": str(row.admit_date),
             "discharge_date": str(row.discharge_date) if row.discharge_date else None,
             "status": row.status,
+            "pet_id": row.pet_id,
             "pet_name": row.pet_name,
             "customer_name": row.customer_name,
         }
@@ -139,9 +140,13 @@ async def get_hospitalization_detail(db: AsyncSession, hosp_id: int) -> dict:
     hosp = await db.execute(
         text(
             "SELECT h.hosp_id, h.visit_id, h.ward_id, h.admit_date, h.discharge_date, h.status, "
-            "w.ward_no, w.type AS ward_type "
+            "w.ward_no, w.type AS ward_type, "
+            "p.name AS pet_name, c.name AS customer_name "
             "FROM hospitalization h "
             "JOIN ward w ON h.ward_id = w.ward_id "
+            "JOIN visit v ON h.visit_id = v.visit_id "
+            "JOIN pet p ON v.pet_id = p.pet_id "
+            "JOIN customer c ON p.customer_id = c.customer_id "
             "WHERE h.hosp_id = :id"
         ),
         {"id": hosp_id},
@@ -172,6 +177,8 @@ async def get_hospitalization_detail(db: AsyncSession, hosp_id: int) -> dict:
         "admit_date": str(hosp_row.admit_date),
         "discharge_date": str(hosp_row.discharge_date) if hosp_row.discharge_date else None,
         "status": hosp_row.status,
+        "pet_name": hosp_row.pet_name,
+        "customer_name": hosp_row.customer_name,
         "nursing_records": [
             {
                 "record_id": row.record_id,

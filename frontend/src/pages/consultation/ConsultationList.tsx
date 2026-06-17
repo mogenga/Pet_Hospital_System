@@ -162,7 +162,8 @@ export default function ConsultationList() {
           <TableHeader>
             <TableRow>
               <TableHead>就诊ID</TableHead>
-              <TableHead>宠物ID</TableHead>
+              <TableHead>宠物名称</TableHead>
+              <TableHead>客户名称</TableHead>
               <TableHead>主诉</TableHead>
               <TableHead>挂号时间</TableHead>
               <TableHead>状态</TableHead>
@@ -176,7 +177,10 @@ export default function ConsultationList() {
                   #{v.visit_id}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  #{v.pet_id}
+                  {v.pet_name || "-"}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {v.customer_name || "-"}
                 </TableCell>
                 <TableCell className="max-w-[200px] truncate">
                   {v.complaint || "-"}

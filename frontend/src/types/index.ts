@@ -197,6 +197,7 @@ export interface PrescriptionDetail {
 export interface CustomerVisitHistory {
   visit_id: number;
   pet_id: number;
+  pet_name: string;
   employee_id: number;
   visit_time: string;
   complaint: string | null;
@@ -214,6 +215,8 @@ export interface BillOut {
   status: BillStatus;
   created_at: string;
   total_amount: string | null;
+  pet_name: string | null;
+  customer_name: string | null;
 }
 
 export interface BillDetail {
@@ -222,6 +225,8 @@ export interface BillDetail {
   status: BillStatus;
   created_at: string;
   total_amount: string;
+  pet_name: string | null;
+  customer_name: string | null;
   items: BillItemOut[];
 }
 
@@ -275,6 +280,7 @@ export interface HospListOut {
   admit_date: string;
   discharge_date: string | null;
   status: HospStatus;
+  pet_id: number;
   pet_name: string | null;
   customer_name: string | null;
 }
@@ -288,6 +294,8 @@ export interface HospDetail {
   admit_date: string;
   discharge_date: string | null;
   status: HospStatus;
+  pet_name: string | null;
+  customer_name: string | null;
   nursing_records: NursingRecord[];
 }
 

@@ -310,7 +310,7 @@ export default function CustomerDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>就诊编号</TableHead>
-                  <TableHead>宠物编号</TableHead>
+                  <TableHead>宠物名称</TableHead>
                   <TableHead>就诊时间</TableHead>
                   <TableHead>主诉</TableHead>
                   <TableHead>状态</TableHead>
@@ -321,7 +321,7 @@ export default function CustomerDetail() {
                 {history.map((h) => (
                   <TableRow key={h.visit_id}>
                     <TableCell>{h.visit_id}</TableCell>
-                    <TableCell>{h.pet_id}</TableCell>
+                    <TableCell>{h.pet_name}</TableCell>
                     <TableCell>
                       {h.visit_time ? h.visit_time.slice(0, 10) : "-"}
                     </TableCell>

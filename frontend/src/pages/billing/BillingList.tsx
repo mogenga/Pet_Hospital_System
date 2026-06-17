@@ -74,7 +74,8 @@ export default function BillingList() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>账单ID</TableHead>
-                      <TableHead>就诊ID</TableHead>
+                      <TableHead>宠物名称</TableHead>
+                      <TableHead>客户名称</TableHead>
                       <TableHead>状态</TableHead>
                       <TableHead>创建时间</TableHead>
                       <TableHead>总金额</TableHead>
@@ -87,7 +88,8 @@ export default function BillingList() {
                         <TableCell className="text-muted-foreground">
                           #{b.bill_id}
                         </TableCell>
-                        <TableCell>#{b.visit_id}</TableCell>
+                        <TableCell>{b.pet_name || "-"}</TableCell>
+                        <TableCell>{b.customer_name || "-"}</TableCell>
                         <TableCell>
                           <StatusBadge status={b.status} />
                         </TableCell>

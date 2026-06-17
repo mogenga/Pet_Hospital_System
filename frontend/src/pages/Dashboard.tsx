@@ -97,7 +97,7 @@ function DashboardHero({
 // ==================== Admin ====================
 
 function AdminDashboard() {
-  const { data: visits, isLoading: visitsLoading } = useVisits();
+  const { data: visits, isLoading: visitsLoading } = useVisits(undefined, { staleTime: 0 });
   const { data: hosps, isLoading: hospsLoading } = useHospitalizations("住院中");
   const { data: bills, isLoading: billsLoading } = useBills();
   const { data: batches, isLoading: batchesLoading } = useBatches(10);
@@ -209,7 +209,7 @@ function AdminDashboard() {
 // ==================== Doctor ====================
 
 function DoctorDashboard() {
-  const { data: visits, isLoading } = useVisits();
+  const { data: visits, isLoading } = useVisits(undefined, { staleTime: 0 });
 
   const pendingCount = useMemo(
     () => visits?.filter((v) => v.status === "待接诊").length ?? 0,

@@ -104,7 +104,10 @@ export function useCreateMedicine() {
   return useMutation({
     mutationFn: (data: MedicineCreate) =>
       apiClient.post("/api/pharmacy/medicines", data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["medicines"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["medicines"] });
+      qc.invalidateQueries({ queryKey: ["medicineStats"] });
+    },
   });
 }
 
@@ -115,7 +118,10 @@ export function useUpdateMedicine() {
       apiClient
         .put(`/api/pharmacy/medicines/${id}`, data)
         .then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["medicines"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["medicines"] });
+      qc.invalidateQueries({ queryKey: ["medicineStats"] });
+    },
   });
 }
 
@@ -166,14 +172,14 @@ export function useUpdateBatch() {
 }
 
 // ==================== 就诊 ====================
-export function useVisits(status?: string) {
+export function useVisits(status?: string, opts?: { staleTime?: number }) {
   return useQuery<VisitOut[]>({
     queryKey: ["visits", status],
     queryFn: () => {
       const params = status ? `?status=${status}` : "";
       return apiClient.get(`/api/consultation/visits${params}`).then((r) => r.data);
     },
-    staleTime: 60000,
+    staleTime: opts?.staleTime ?? 60000,
   });
 }
 
@@ -217,7 +223,11 @@ export function useCreatePrescription() {
   return useMutation({
     mutationFn: ({ diagnosisId, data }: { diagnosisId: number; data: PrescriptionCreate }) =>
       apiClient.post(`/api/consultation/diagnoses/${diagnosisId}/prescriptions`, data).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["visits"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["visits"] });
+      qc.invalidateQueries({ queryKey: ["batches"] });       // 扣库存后批次数据失效
+      qc.invalidateQueries({ queryKey: ["medicineStats"] });  // 药品统计失效
+    },
   });
 }
 
@@ -272,7 +282,10 @@ export function useSettleBill() {
   return useMutation({
     mutationFn: (billId: number) =>
       apiClient.post(`/api/billing/bills/${billId}/settle`).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["bills"] }),
+    onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["bills"] });
+        qc.invalidateQueries({ queryKey: ["visits"] });        // 结账后 visit.status 待收费→已完成
+      },
   });
 }
 

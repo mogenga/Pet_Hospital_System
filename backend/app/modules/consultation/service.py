@@ -11,6 +11,7 @@ from app.modules.consultation.schemas import (
     VisitOut,
 )
 from app.modules.pharmacy.service import deduct_stock
+from app.shared.services.billing_service import add_item as billing_add_item
 
 
 # ═══════════════════════════════════════════
@@ -241,13 +242,19 @@ async def add_prescription(
     if row.status not in ("接诊中", "待收费"):
         raise Conflict(detail=f"当前状态'{row.status}'不可开具处方")
 
-    # 批量查询所有批次的 medicine_id（消除 N+1）
+    # 批量查询所有批次的 medicine_id + unit_price + name（消除 N+1）
     batch_ids = [item.batch_id for item in items]
     batch_result = await db.execute(
-        text("SELECT batch_id, medicine_id FROM medicine_batch WHERE batch_id = ANY(:bids)"),
+        text(
+            "SELECT mb.batch_id, mb.medicine_id, m.name AS medicine_name, m.unit_price "
+            "FROM medicine_batch mb JOIN medicine m ON mb.medicine_id = m.medicine_id "
+            "WHERE mb.batch_id = ANY(:bids)"
+        ),
         {"bids": batch_ids},
     )
-    batch_map = {row.batch_id: row.medicine_id for row in batch_result.fetchall()}
+    batch_rows = batch_result.fetchall()
+    batch_map = {row.batch_id: row.medicine_id for row in batch_rows}
+    batch_price_map = {row.batch_id: (row.unit_price, row.medicine_name) for row in batch_rows}
 
     # 验证所有批次存在
     for item in items:
@@ -283,6 +290,19 @@ async def add_prescription(
                 quantity=rx_row.quantity,
                 dosage=rx_row.dosage,
             )
+        )
+
+        # 自动生成药品费账单（处方开具即计费）
+        unit_price, med_name = batch_price_map[item.batch_id]
+        amount = float(unit_price) * item.quantity
+        await billing_add_item(
+            db,
+            visit_id=row.visit_id,
+            item_type="药品费",
+            source_type="prescription",
+            source_id=rx_row.item_id,
+            amount=amount,
+            description=f"{med_name} x{item.quantity}",
         )
 
     await db.flush()

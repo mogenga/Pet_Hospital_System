@@ -89,7 +89,7 @@ function AdmitDialog({
 
   // 计算选中项的显示标签（避免 SelectValue 回退显示数字 ID）
   const selectedVisitLabel = visits?.find((v) => String(v.visit_id) === visitId)
-    ? `#${visitId} - 宠物#${visits!.find((v) => String(v.visit_id) === visitId)!.pet_id}`
+    ? `#${visitId} - ${visits!.find((v) => String(v.visit_id) === visitId)!.pet_name || "未知宠物"}`
     : undefined;
   const selectedWardLabel = freeWards.find((w) => String(w.ward_id) === wardId)
     ? `${freeWards.find((w) => String(w.ward_id) === wardId)!.ward_no} (${freeWards.find((w) => String(w.ward_id) === wardId)!.type}, ${Number(freeWards.find((w) => String(w.ward_id) === wardId)!.daily_rate).toFixed(0)}元/天)`
@@ -144,7 +144,7 @@ function AdmitDialog({
                 ) : (
                   visits.map((v) => (
                     <SelectItem key={v.visit_id} value={String(v.visit_id)}>
-                      #{v.visit_id} - 宠物#{v.pet_id}
+                      #{v.visit_id} - {v.pet_name || "未知宠物"}
                     </SelectItem>
                   ))
                 )}
@@ -232,6 +232,8 @@ function HospTable({
         <TableRow>
           <TableHead>住院ID</TableHead>
           <TableHead>就诊ID</TableHead>
+          <TableHead>宠物名称</TableHead>
+          <TableHead>客户名称</TableHead>
           <TableHead>笼位号</TableHead>
           <TableHead>笼位类型</TableHead>
           <TableHead>入院日期</TableHead>
@@ -247,6 +249,8 @@ function HospTable({
               #{h.hosp_id}
             </TableCell>
             <TableCell>#{h.visit_id}</TableCell>
+            <TableCell>{h.pet_name || "-"}</TableCell>
+            <TableCell>{h.customer_name || "-"}</TableCell>
             <TableCell>{h.ward_no}</TableCell>
             <TableCell>{h.ward_type}</TableCell>
             <TableCell>{h.admit_date.slice(0, 10)}</TableCell>

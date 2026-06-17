@@ -58,20 +58,31 @@ async def settle_bill(db: AsyncSession, bill_id: int) -> dict:
         text("UPDATE bill SET status = '已结清' WHERE bill_id = :id"),
         {"id": bill_id},
     )
+
+    # 同步更新 visit 状态：待收费 → 已完成（架构规格：管理员结账 → 已完成）
+    await db.execute(
+        text("UPDATE visit SET status = '已完成' WHERE visit_id = :vid AND status = '待收费'"),
+        {"vid": row.visit_id},
+    )
+
     await db.flush()
 
     return {"bill_id": row.bill_id, "visit_id": row.visit_id, "status": "已结清"}
 
 
 async def list_bills(db: AsyncSession) -> list[dict]:
-    """账单列表"""
+    """账单列表（含宠物/客户信息）"""
     result = await db.execute(
         text(
             "SELECT b.bill_id, b.visit_id, b.status, "
             "TO_CHAR(b.created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at, "
-            "v.total_amount "
+            "v.total_amount, "
+            "p.name AS pet_name, c.name AS customer_name "
             "FROM v_bill_total v "
             "JOIN bill b ON b.bill_id = v.bill_id "
+            "JOIN visit vis ON b.visit_id = vis.visit_id "
+            "JOIN pet p ON vis.pet_id = p.pet_id "
+            "JOIN customer c ON p.customer_id = c.customer_id "
             "ORDER BY b.bill_id DESC"
         ),
     )
@@ -82,6 +93,8 @@ async def list_bills(db: AsyncSession) -> list[dict]:
             "status": row.status,
             "created_at": row.created_at,
             "total_amount": str(row.total_amount) if row.total_amount else None,
+            "pet_name": row.pet_name,
+            "customer_name": row.customer_name,
         }
         for row in result.fetchall()
     ]
@@ -93,9 +106,13 @@ async def get_bill_detail(db: AsyncSession, bill_id: int) -> dict:
         text(
             "SELECT b.bill_id, b.visit_id, b.status, "
             "TO_CHAR(b.created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at, "
-            "v.total_amount "
+            "v.total_amount, "
+            "p.name AS pet_name, c.name AS customer_name "
             "FROM v_bill_total v "
             "JOIN bill b ON b.bill_id = v.bill_id "
+            "JOIN visit vis ON b.visit_id = vis.visit_id "
+            "JOIN pet p ON vis.pet_id = p.pet_id "
+            "JOIN customer c ON p.customer_id = c.customer_id "
             "WHERE b.bill_id = :id"
         ),
         {"id": bill_id},
@@ -119,6 +136,8 @@ async def get_bill_detail(db: AsyncSession, bill_id: int) -> dict:
         "status": bill_row.status,
         "created_at": bill_row.created_at,
         "total_amount": str(bill_row.total_amount) if bill_row.total_amount else "0",
+        "pet_name": bill_row.pet_name,
+        "customer_name": bill_row.customer_name,
         "items": [
             {
                 "bill_item_id": item.bill_item_id,

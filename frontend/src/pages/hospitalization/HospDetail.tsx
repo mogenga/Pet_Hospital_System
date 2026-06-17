@@ -141,7 +141,7 @@ export default function HospDetail() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Array.from({ length: 7 }).map((_, i) => (
+              {Array.from({ length: 9 }).map((_, i) => (
                 <Skeleton key={i} className="h-5 w-full" />
               ))}
             </div>
@@ -207,6 +207,8 @@ export default function HospDetail() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DetailItem label="住院ID" value={`#${hosp.hosp_id}`} />
             <DetailItem label="就诊ID" value={`#${hosp.visit_id}`} />
+            <DetailItem label="宠物名称" value={hosp.pet_name || "-"} />
+            <DetailItem label="客户名称" value={hosp.customer_name || "-"} />
             <DetailItem label="笼位号" value={hosp.ward_no} />
             <DetailItem label="笼位类型" value={hosp.ward_type} />
             <DetailItem
