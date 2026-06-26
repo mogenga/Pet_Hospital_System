@@ -206,6 +206,7 @@ export interface CustomerVisitHistory {
   visit_time: string;
   complaint: string | null;
   status: string;
+  bill_status: string | null;
   diagnosis: { diagnosis_id: number; diagnosis_result: string; notes: string | null } | null;
   medical_record: Record<string, unknown> | null;
 }

@@ -197,7 +197,7 @@ async def create_diagnosis(
     if row.status != "接诊中":
         raise Conflict(detail=f"当前状态'{row.status}'不可诊断，需要先接诊")
 
-    # 插入诊断 + 更新 visit 状态（复用已有隐式事务）
+    # 插入诊断 + 更新 visit 状态：接诊中 → 待收费
     diag_result = await db.execute(
         text(
             "INSERT INTO diagnosis (visit_id, diagnosis_result, notes) "
@@ -207,6 +207,11 @@ async def create_diagnosis(
         {"vid": visit_id, "result": data.diagnosis_result, "notes": data.notes},
     )
     diag_row = diag_result.fetchone()
+
+    await db.execute(
+        text("UPDATE visit SET status = '待收费' WHERE visit_id = :vid"),
+        {"vid": visit_id},
+    )
 
     await db.flush()
 

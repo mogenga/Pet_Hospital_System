@@ -277,11 +277,27 @@ async def get_customer_history(
         {"vids": visit_ids},
     )
     diag_rows = diag_result.fetchall()
+    diag_by_visit = {d.visit_id: d for d in diag_rows}
+
+    # 批量查询 bill status（一次 PG 查询）
+    bill_result = await db.execute(
+        text(
+            "SELECT visit_id, status FROM bill WHERE visit_id = ANY(:vids)"
+        ),
+        {"vids": visit_ids},
+    )
+    bill_by_visit = {b.visit_id: b.status for b in bill_result.fetchall()}
 
     # 组装结果
-    diag_by_visit = {d.visit_id: d for d in diag_rows}
     result = []
     for v in visit_rows:
+        bill_status = bill_by_visit.get(v.visit_id)
+        # 修正：如果账单已结清但就诊状态未同步（旧数据或边界情况），
+        # 账单是收费状态的权威数据源，就诊状态按已完成展示
+        display_status = v.status
+        if bill_status == "已结清" and v.status == "待收费":
+            display_status = "已完成"
+
         visit_data = {
             "visit_id": v.visit_id,
             "pet_id": v.pet_id,
@@ -289,7 +305,8 @@ async def get_customer_history(
             "employee_id": v.employee_id,
             "visit_time": v.visit_time.isoformat(),
             "complaint": v.complaint,
-            "status": v.status,
+            "status": display_status,
+            "bill_status": bill_status,
             "diagnosis": None,
         }
         d = diag_by_visit.get(v.visit_id)

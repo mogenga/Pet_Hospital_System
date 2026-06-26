@@ -54,16 +54,32 @@ async def settle_bill(db: AsyncSession, bill_id: int) -> dict:
     if row.status == "已结清":
         raise Conflict(detail="账单已结清，无需重复结账")
 
+    import logging
+    _logger = logging.getLogger(__name__)
+
     await db.execute(
         text("UPDATE bill SET status = '已结清' WHERE bill_id = :id"),
         {"id": bill_id},
     )
 
-    # 同步更新 visit 状态：待收费 → 已完成（架构规格：管理员结账 → 已完成）
-    await db.execute(
-        text("UPDATE visit SET status = '已完成' WHERE visit_id = :vid AND status = '待收费'"),
+    # 同步更新 visit 状态：→ 已完成（架构规格：管理员结账 → 已完成）
+    # 先查当前状态用于日志
+    current = await db.execute(
+        text("SELECT status FROM visit WHERE visit_id = :vid"),
         {"vid": row.visit_id},
     )
+    current_status = current.scalar()
+
+    await db.execute(
+        text("UPDATE visit SET status = '已完成' WHERE visit_id = :vid"),
+        {"vid": row.visit_id},
+    )
+
+    if current_status and current_status != "待收费":
+        _logger.warning(
+            "结账时 visit 状态异常 visit_id=%s 状态=%s 预期=待收费 bill_id=%s",
+            row.visit_id, current_status, bill_id,
+        )
 
     await db.flush()
 

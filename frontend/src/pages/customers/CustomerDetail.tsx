@@ -313,7 +313,8 @@ export default function CustomerDetail() {
                   <TableHead>宠物名称</TableHead>
                   <TableHead>就诊时间</TableHead>
                   <TableHead>主诉</TableHead>
-                  <TableHead>状态</TableHead>
+                  <TableHead>就诊状态</TableHead>
+                  <TableHead>收费状态</TableHead>
                   <TableHead>诊断结果</TableHead>
                 </TableRow>
               </TableHeader>
@@ -330,6 +331,13 @@ export default function CustomerDetail() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={h.status} />
+                    </TableCell>
+                    <TableCell>
+                      {h.bill_status ? (
+                        <StatusBadge status={h.bill_status} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="max-w-40 truncate">
                       {h.diagnosis?.diagnosis_result || "-"}

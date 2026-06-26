@@ -5,12 +5,14 @@ import io
 import logging
 from datetime import datetime
 
+import os
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from sqlalchemy import text
@@ -21,11 +23,42 @@ from app.shared.minio import ensure_bucket, minio_client
 
 from .celery_app import celery_app
 
-# 注册中文字体（ReportLab 内置 STSong-Light，支持 CJK）
-pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
-CN_FONT = "STSong-Light"
-
 logger = logging.getLogger(__name__)
+
+# 注册中文字体 — 按优先级查找系统 TTF 字体
+_FONT_CANDIDATES = [
+    # Linux (常用中文字体包)
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+    # macOS
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
+    "/Library/Fonts/Arial Unicode.ttf",
+    # Windows
+    "C:/Windows/Fonts/simhei.ttf",
+    "C:/Windows/Fonts/msyh.ttc",
+    "C:/Windows/Fonts/simsun.ttc",
+]
+
+CN_FONT = "Helvetica"  # fallback
+
+for _font_path in _FONT_CANDIDATES:
+    if os.path.isfile(_font_path):
+        try:
+            _font_name = os.path.splitext(os.path.basename(_font_path))[0]
+            pdfmetrics.registerFont(TTFont(_font_name, _font_path))
+            CN_FONT = _font_name
+            logger.info("PDF 中文字体已注册: %s (%s)", _font_name, _font_path)
+            break
+        except Exception as _e:
+            logger.warning("PDF 字体注册失败 %s: %s", _font_path, _e)
+    else:
+        logger.debug("PDF 字体候选不存在: %s", _font_path)
+else:
+    logger.warning("未找到任何中文字体，PDF 中文将无法正常显示！")
 
 # 同步引擎用于 Celery 任务（Celery worker 不共享 FastAPI 的 async engine）
 SYNC_PG_URL = settings.PG_URL.replace("+asyncpg", "+psycopg2")
