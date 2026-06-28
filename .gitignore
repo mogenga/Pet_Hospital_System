@@ -6,6 +6,8 @@ docs/superpowers
 .superpowers/
 paper_rewriting_output/*
 docs/photos
+docs/minio-upload-discussion.md
+docs/系统架构设计 — 问题汇总与解决方案.md
 
 # Python
 __pycache__/
